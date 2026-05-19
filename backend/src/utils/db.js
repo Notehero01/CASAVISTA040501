@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { generateId, hashPassword } = require('./crypto');
 
-const DATA_DIR = path.join(__dirname, '../../data');
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, '../../data');
 
 // Assicurati che la directory esista
 if (!fs.existsSync(DATA_DIR)) {

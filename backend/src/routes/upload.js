@@ -6,7 +6,9 @@ const fs = require('fs');
 const { auth } = require('../middleware/auth');
 
 // Assicurati che la directory uploads esista
-const uploadDir = path.join(__dirname, '../../uploads');
+const uploadDir = process.env.UPLOAD_PATH
+  ? path.resolve(process.env.UPLOAD_PATH)
+  : path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

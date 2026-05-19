@@ -1,0 +1,10 @@
+.git
+.gitignore
+**/node_modules
+**/dist
+backend/.env
+backend/data/*.json
+backend/uploads/*
+frontend/.env
+*.log
+npm-debug.log*

@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
+const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -18,12 +19,20 @@ const chatRoutes = require('./routes/chat');
 const amministrazioniRoutes = require('./routes/amministrazioni');
 const uploadRoutes = require('./routes/upload');
 
+const productionOrigins = (process.env.CLIENT_ORIGIN || 'https://casavista.it,https://www.casavista.it')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+const uploadPath = process.env.UPLOAD_PATH
+  ? path.resolve(process.env.UPLOAD_PATH)
+  : path.join(__dirname, '../uploads');
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://tuodominio.com'] 
+      ? productionOrigins
       : ['http://localhost:3000', 'http://localhost:5173'],
     credentials: true
   }
@@ -39,7 +48,7 @@ app.use(helmet({
 
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://tuodominio.com']
+    ? productionOrigins
     : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true
 }));
@@ -66,7 +75,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Static files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(uploadPath));
 
 // Initialize admin
 initAdmin();
@@ -86,6 +95,18 @@ app.get('/api/health', (req, res) => {
     version: '1.0.0'
   });
 });
+
+// Serve il frontend React quando backend e frontend sono nello stesso container.
+if (process.env.NODE_ENV === 'production') {
+  const publicDir = path.join(__dirname, '../public');
+  if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(publicDir, 'index.html'));
+    });
+  }
+}
 
 // Socket.io per chat real-time
 const connectedUsers = new Map();

@@ -1,0 +1,36 @@
+services:
+  - type: web
+    runtime: docker
+    name: casavista
+    plan: starter
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    domains:
+      - casavista.it
+      - www.casavista.it
+    disk:
+      name: casavista-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: ADMIN_EMAIL
+        value: admin@casavista.it
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DATA_DIR
+        value: /var/data/casavista/data
+      - key: UPLOAD_PATH
+        value: /var/data/casavista/uploads
+      - key: CLIENT_ORIGIN
+        value: https://casavista.it,https://www.casavista.it
