@@ -2,7 +2,7 @@ services:
   - type: web
     runtime: docker
     name: casavista
-    plan: starter
+    plan: free
     region: frankfurt
     branch: main
     dockerfilePath: ./Dockerfile
@@ -11,10 +11,6 @@ services:
     domains:
       - casavista.it
       - www.casavista.it
-    disk:
-      name: casavista-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
@@ -28,11 +24,5 @@ services:
         value: admin@casavista.it
       - key: ADMIN_PASSWORD
         sync: false
-      - key: DATA_DIR
-        value: /var/data/casavista/data
-      - key: UPLOAD_PATH
-        value: /var/data/casavista/uploads
       - key: CLIENT_ORIGIN
         value: https://casavista.it,https://www.casavista.it
-      - key: VITE_GOOGLE_MAPS_API_KEY
-        sync: false
