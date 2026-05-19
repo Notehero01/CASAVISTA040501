@@ -34,3 +34,5 @@ services:
         value: /var/data/casavista/uploads
       - key: CLIENT_ORIGIN
         value: https://casavista.it,https://www.casavista.it
+      - key: VITE_GOOGLE_MAPS_API_KEY
+        sync: false
