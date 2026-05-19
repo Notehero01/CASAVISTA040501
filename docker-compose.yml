@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: casavista-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - JWT_SECRET=${JWT_SECRET:-CasaVista_Default_Secret_Change_This}
+      - JWT_EXPIRE=7d
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@casavista.it}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-CasaVista2024!Admin#Secure}
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/uploads:/app/uploads
+    networks:
+      - casavista-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: casavista-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+    depends_on:
+      - backend
+    networks:
+      - casavista-network
+
+networks:
+  casavista-network:
+    driver: bridge
