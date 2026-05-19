@@ -23,6 +23,6 @@ services:
       - key: ADMIN_EMAIL
         value: admin@casavista.it
       - key: ADMIN_PASSWORD
-        sync: false
+        generateValue: true
       - key: CLIENT_ORIGIN
         value: https://casavista.it,https://www.casavista.it
