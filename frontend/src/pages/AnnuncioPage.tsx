@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, Bed, Bath, Maximize, User, Phone, Mail, ArrowLeft, Heart, Check, Eye, MessageCircle, Scale, Share2, BadgeCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,11 +11,19 @@ import { useConfronto } from '@/hooks/useConfronto';
 import { MapView } from '@/components/MapView';
 import { SEO, extractIdFromSlug, generateMetaTitle, generateMetaDescription } from '@/utils/seo';
 import type { Annuncio } from '@/types/annuncio';
+import type { User as AuthUser } from '@/hooks/useAuth';
 
-export function AnnuncioPage() {
+interface AnnuncioPageProps {
+  currentUser: AuthUser | null;
+  onStartChat: (annuncio: Annuncio) => Promise<string>;
+}
+
+export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [annuncio, setAnnuncio] = useState<Annuncio | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chatLoading, setChatLoading] = useState(false);
   const [userInfo, setUserInfo] = useState<{ isVerified?: boolean; isAgency?: boolean } | null>(null);
   const { isPreferito, togglePreferito } = usePreferiti();
   const { isNelConfronto, toggleConfronto, canAddMore } = useConfronto();
@@ -70,6 +78,29 @@ export function AnnuncioPage() {
     if (annuncioId) {
       const result = toggleConfronto(annuncioId);
       toast.success(result.message);
+    }
+  };
+
+  const handleStartChat = async () => {
+    if (!annuncio) return;
+    if (!currentUser) {
+      toast.error('Accedi o registrati per scrivere in chat.');
+      navigate('/login');
+      return;
+    }
+    if (currentUser.id === annuncio.userId) {
+      toast.info('Questo annuncio appartiene al tuo account.');
+      return;
+    }
+
+    setChatLoading(true);
+    try {
+      await onStartChat(annuncio);
+      toast.success('Chat aperta.');
+    } catch (error: any) {
+      toast.error(error.message || 'Impossibile aprire la chat.');
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -245,8 +276,13 @@ export function AnnuncioPage() {
                 </div>
               </div>
 
-              <Button className="w-full bg-[#e74c3c] hover:bg-[#c0392b] mb-3">
-                <MessageCircle className="h-4 w-4 mr-2" />Scrivi in chat
+              <Button
+                className="w-full bg-[#e74c3c] hover:bg-[#c0392b] mb-3"
+                onClick={handleStartChat}
+                disabled={chatLoading}
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                {chatLoading ? 'Apertura chat...' : 'Scrivi in chat'}
               </Button>
               <Button variant="outline" className="w-full" onClick={() => window.location.href = `tel:${annuncio.telefono_contatto}`}>
                 <Phone className="h-4 w-4 mr-2" />Chiama

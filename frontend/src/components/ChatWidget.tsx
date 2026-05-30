@@ -9,6 +9,8 @@ interface ChatWidgetProps {
   currentUser: User | null;
   conversations: Conversation[];
   unreadTotal: number;
+  openConversationId?: string | null;
+  onConversationOpened?: () => void;
   getMessages: (conversationId: string) => Promise<ChatMessage[]>;
   sendMessage: (conversationId: string, content: string) => Promise<boolean>;
   markAsRead: (conversationId: string) => Promise<void>;
@@ -16,7 +18,15 @@ interface ChatWidgetProps {
 }
 
 export function ChatWidget({ 
-  currentUser, conversations, unreadTotal, getMessages, sendMessage, markAsRead, deleteConversation 
+  currentUser,
+  conversations,
+  unreadTotal,
+  openConversationId,
+  onConversationOpened,
+  getMessages,
+  sendMessage,
+  markAsRead,
+  deleteConversation
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
@@ -24,6 +34,14 @@ export function ChatWidget({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (openConversationId) {
+      setIsOpen(true);
+      setActiveConversation(openConversationId);
+      onConversationOpened?.();
+    }
+  }, [openConversationId, onConversationOpened]);
 
   useEffect(() => {
     if (activeConversation) {
