@@ -9,7 +9,7 @@ import { annunciApi } from '@/utils/api';
 import { usePreferiti } from '@/hooks/usePreferiti';
 import { useConfronto } from '@/hooks/useConfronto';
 import { MapView } from '@/components/MapView';
-import { SEO, extractIdFromSlug, generateMetaTitle, generateMetaDescription } from '@/utils/seo';
+import { SEO, generateMetaTitle, generateMetaDescription } from '@/utils/seo';
 import type { Annuncio } from '@/types/annuncio';
 import type { User as AuthUser } from '@/hooks/useAuth';
 
@@ -28,14 +28,12 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   const { isPreferito, togglePreferito } = usePreferiti();
   const { isNelConfronto, toggleConfronto, canAddMore } = useConfronto();
 
-  const annuncioId = slug ? extractIdFromSlug(slug) : '';
-
   useEffect(() => {
-    if (annuncioId) {
+    if (slug) {
       // Incrementa visualizzazioni
-      annunciApi.incrementViews(annuncioId).catch(() => {});
+      annunciApi.incrementViews(slug).catch(() => {});
       
-      annunciApi.getById(annuncioId).then(data => {
+      annunciApi.getById(slug).then(data => {
         setAnnuncio(data);
         // Carica info utente per badge verificato
         if (data.userId) {
@@ -47,7 +45,7 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
         setLoading(false);
       });
     }
-  }, [annuncioId]);
+  }, [slug]);
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -68,15 +66,15 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   };
 
   const handlePreferito = () => {
-    if (annuncioId) {
-      togglePreferito(annuncioId);
-      toast.success(isPreferito(annuncioId) ? 'Rimosso dai preferiti' : 'Aggiunto ai preferiti');
+    if (annuncio?.id) {
+      togglePreferito(annuncio.id);
+      toast.success(isPreferito(annuncio.id) ? 'Rimosso dai preferiti' : 'Aggiunto ai preferiti');
     }
   };
 
   const handleConfronto = () => {
-    if (annuncioId) {
-      const result = toggleConfronto(annuncioId);
+    if (annuncio?.id) {
+      const result = toggleConfronto(annuncio.id);
       toast.success(result.message);
     }
   };
