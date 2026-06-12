@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { auth } = require('../middleware/auth');
+const { isObjectStorageConfigured, uploadImageBuffer, deleteImage } = require('../utils/storage');
 
 // Assicurati che la directory uploads esista
 const uploadDir = process.env.UPLOAD_PATH
@@ -35,8 +36,10 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+const useObjectStorage = isObjectStorageConfigured();
+
 const upload = multer({
-  storage,
+  storage: useObjectStorage ? multer.memoryStorage() : storage,
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB
@@ -44,18 +47,23 @@ const upload = multer({
 });
 
 // Upload singola immagine
-router.post('/image', auth, upload.single('image'), (req, res) => {
+router.post('/image', auth, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'Nessun file caricato.' });
     }
 
-    const imageUrl = `/uploads/${req.file.filename}`;
+    const storedFile = useObjectStorage
+      ? await uploadImageBuffer(req.file)
+      : {
+          filename: req.file.filename,
+          url: `/uploads/${req.file.filename}`
+        };
     
     res.json({
       message: 'Immagine caricata.',
-      url: imageUrl,
-      filename: req.file.filename
+      url: storedFile.url,
+      filename: storedFile.filename
     });
   } catch (error) {
     console.error('Upload error:', error);
@@ -64,18 +72,23 @@ router.post('/image', auth, upload.single('image'), (req, res) => {
 });
 
 // Upload multiple immagini
-router.post('/images', auth, upload.array('images', 10), (req, res) => {
+router.post('/images', auth, upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'Nessun file caricato.' });
     }
 
-    const urls = req.files.map(file => `/uploads/${file.filename}`);
+    const storedFiles = useObjectStorage
+      ? await Promise.all(req.files.map(file => uploadImageBuffer(file)))
+      : req.files.map(file => ({
+          filename: file.filename,
+          url: `/uploads/${file.filename}`
+        }));
     
     res.json({
       message: `${req.files.length} immagini caricate.`,
-      urls,
-      filenames: req.files.map(f => f.filename)
+      urls: storedFiles.map(file => file.url),
+      filenames: storedFiles.map(file => file.filename)
     });
   } catch (error) {
     console.error('Upload error:', error);
@@ -84,9 +97,15 @@ router.post('/images', auth, upload.array('images', 10), (req, res) => {
 });
 
 // Delete image
-router.delete('/image/:filename', auth, (req, res) => {
+router.delete('/image/:filename', auth, async (req, res) => {
   try {
     const filename = req.params.filename;
+
+    if (useObjectStorage) {
+      await deleteImage(filename);
+      return res.json({ message: 'Immagine eliminata.' });
+    }
+
     const filepath = path.join(uploadDir, filename);
 
     if (fs.existsSync(filepath)) {

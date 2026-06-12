@@ -19,7 +19,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'La password deve essere di almeno 6 caratteri.' });
     }
 
-    const users = readData('users');
+    const users = await readData('users');
 
     // Verifica email esistente
     if (users.find(u => u.email === email)) {
@@ -42,7 +42,7 @@ router.post('/register', async (req, res) => {
     };
 
     users.push(newUser);
-    writeData('users', users);
+    await writeData('users', users);
 
     // Invia email di benvenuto (non bloccante)
     sendEmail(newUser.email, 'welcome', [newUser.nome]).catch(err => {
@@ -83,7 +83,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email e password sono obbligatori.' });
     }
 
-    const users = readData('users');
+    const users = await readData('users');
     const user = users.find(u => u.email === email.toLowerCase());
 
     if (!user) {
@@ -98,7 +98,7 @@ router.post('/login', async (req, res) => {
 
     // Aggiorna ultimo accesso
     user.lastLogin = new Date().toISOString();
-    writeData('users', users);
+    await writeData('users', users);
 
     const token = jwt.sign(
       { id: user.id, email: user.email, tipo: user.tipo },
@@ -130,9 +130,9 @@ router.get('/me', require('../middleware/auth').auth, (req, res) => {
 });
 
 // Get public user info (per badge verificato)
-router.get('/user/:id', (req, res) => {
+router.get('/user/:id', async (req, res) => {
   try {
-    const users = readData('users');
+    const users = await readData('users');
     const user = users.find(u => u.id === req.params.id);
     
     if (!user) {
@@ -155,10 +155,10 @@ router.get('/user/:id', (req, res) => {
 });
 
 // Update profile
-router.put('/profile', require('../middleware/auth').auth, (req, res) => {
+router.put('/profile', require('../middleware/auth').auth, async (req, res) => {
   try {
     const { nome, cognome, telefono } = req.body;
-    const users = readData('users');
+    const users = await readData('users');
     const userIndex = users.findIndex(u => u.id === req.user.id);
 
     if (userIndex === -1) {
@@ -173,7 +173,7 @@ router.put('/profile', require('../middleware/auth').auth, (req, res) => {
       updatedAt: new Date().toISOString()
     };
 
-    writeData('users', users);
+    await writeData('users', users);
 
     res.json({
       message: 'Profilo aggiornato.',

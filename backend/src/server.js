@@ -10,7 +10,7 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 
-const { initAdmin } = require('./utils/db');
+const { initDatabase, initAdmin, usePostgres } = require('./utils/db');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -77,8 +77,21 @@ app.use(express.urlencoded({ extended: true }));
 // Static files
 app.use('/uploads', express.static(uploadPath));
 
-// Initialize admin
-initAdmin();
+const startupPromise = initDatabase()
+  .then(() => initAdmin())
+  .then(() => {
+    console.log(`Database pronto: ${usePostgres ? 'PostgreSQL' : 'JSON files'}`);
+  });
+
+app.use(async (req, res, next) => {
+  try {
+    await startupPromise;
+    next();
+  } catch (error) {
+    console.error('Database startup error:', error);
+    res.status(500).json({ message: 'Database non disponibile.' });
+  }
+});
 
 // Routes
 app.use('/api/auth', authRoutes);

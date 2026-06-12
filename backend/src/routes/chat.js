@@ -5,10 +5,10 @@ const { auth } = require('../middleware/auth');
 const { sendEmail } = require('../utils/email');
 
 // Get user's conversations
-router.get('/conversations', auth, (req, res) => {
+router.get('/conversations', auth, async (req, res) => {
   try {
-    const conversations = readData('conversations');
-    const messages = readData('messages');
+    const conversations = await readData('conversations');
+    const messages = await readData('messages');
     
     const userConversations = conversations
       .filter(c => c.participants.includes(req.user.id))
@@ -42,7 +42,7 @@ router.get('/conversations', auth, (req, res) => {
 });
 
 // Get or create conversation
-router.post('/conversations', auth, (req, res) => {
+router.post('/conversations', auth, async (req, res) => {
   try {
     const { otherUserId, annuncioId, annuncioTitle } = req.body;
     
@@ -50,8 +50,8 @@ router.post('/conversations', auth, (req, res) => {
       return res.status(400).json({ message: 'ID utente richiesto.' });
     }
 
-    const conversations = readData('conversations');
-    const users = readData('users');
+    const conversations = await readData('conversations');
+    const users = await readData('users');
     
     const otherUser = users.find(u => u.id === otherUserId);
     if (!otherUser) {
@@ -80,7 +80,7 @@ router.post('/conversations', auth, (req, res) => {
       };
       
       conversations.push(conversation);
-      writeData('conversations', conversations);
+      await writeData('conversations', conversations);
     }
 
     res.json(conversation);
@@ -91,9 +91,9 @@ router.post('/conversations', auth, (req, res) => {
 });
 
 // Get messages for a conversation
-router.get('/conversations/:id/messages', auth, (req, res) => {
+router.get('/conversations/:id/messages', auth, async (req, res) => {
   try {
-    const conversations = readData('conversations');
+    const conversations = await readData('conversations');
     const conversation = conversations.find(c => c.id === req.params.id);
 
     if (!conversation) {
@@ -104,7 +104,7 @@ router.get('/conversations/:id/messages', auth, (req, res) => {
       return res.status(403).json({ message: 'Non autorizzato.' });
     }
 
-    const messages = readData('messages');
+    const messages = await readData('messages');
     const conversationMessages = messages
       .filter(m => m.conversationId === req.params.id)
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -119,7 +119,7 @@ router.get('/conversations/:id/messages', auth, (req, res) => {
     });
 
     if (updated) {
-      writeData('messages', messages);
+      await writeData('messages', messages);
     }
 
     res.json(conversationMessages);
@@ -130,7 +130,7 @@ router.get('/conversations/:id/messages', auth, (req, res) => {
 });
 
 // Send message
-router.post('/conversations/:id/messages', auth, (req, res) => {
+router.post('/conversations/:id/messages', auth, async (req, res) => {
   try {
     const { content } = req.body;
     
@@ -138,7 +138,7 @@ router.post('/conversations/:id/messages', auth, (req, res) => {
       return res.status(400).json({ message: 'Contenuto richiesto.' });
     }
 
-    const conversations = readData('conversations');
+    const conversations = await readData('conversations');
     const conversation = conversations.find(c => c.id === req.params.id);
 
     if (!conversation) {
@@ -151,7 +151,7 @@ router.post('/conversations/:id/messages', auth, (req, res) => {
 
     const receiverId = conversation.participants.find(p => p !== req.user.id);
 
-    const messages = readData('messages');
+    const messages = await readData('messages');
     const newMessage = {
       id: generateId(),
       conversationId: req.params.id,
@@ -164,14 +164,14 @@ router.post('/conversations/:id/messages', auth, (req, res) => {
     };
 
     messages.push(newMessage);
-    writeData('messages', messages);
+    await writeData('messages', messages);
 
     // Aggiorna timestamp conversazione
     conversation.updatedAt = newMessage.timestamp;
-    writeData('conversations', conversations);
+    await writeData('conversations', conversations);
 
     // Invia notifica email al destinatario (non bloccante)
-    const users = readData('users');
+    const users = await readData('users');
     const receiver = users.find(u => u.id === receiverId);
     if (receiver && receiver.email) {
       const preview = content.length > 100 ? content.substring(0, 100) + '...' : content;
@@ -192,9 +192,9 @@ router.post('/conversations/:id/messages', auth, (req, res) => {
 });
 
 // Delete conversation
-router.delete('/conversations/:id', auth, (req, res) => {
+router.delete('/conversations/:id', auth, async (req, res) => {
   try {
-    const conversations = readData('conversations');
+    const conversations = await readData('conversations');
     const index = conversations.findIndex(c => c.id === req.params.id);
 
     if (index === -1) {
@@ -207,12 +207,12 @@ router.delete('/conversations/:id', auth, (req, res) => {
 
     // Elimina conversazione
     conversations.splice(index, 1);
-    writeData('conversations', conversations);
+    await writeData('conversations', conversations);
 
     // Elimina messaggi
-    const messages = readData('messages');
+    const messages = await readData('messages');
     const filteredMessages = messages.filter(m => m.conversationId !== req.params.id);
-    writeData('messages', filteredMessages);
+    await writeData('messages', filteredMessages);
 
     res.json({ message: 'Conversazione eliminata.' });
   } catch (error) {
@@ -222,9 +222,9 @@ router.delete('/conversations/:id', auth, (req, res) => {
 });
 
 // Get unread count
-router.get('/unread', auth, (req, res) => {
+router.get('/unread', auth, async (req, res) => {
   try {
-    const messages = readData('messages');
+    const messages = await readData('messages');
     const unreadCount = messages.filter(
       m => m.receiverId === req.user.id && !m.read
     ).length;

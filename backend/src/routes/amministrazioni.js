@@ -4,11 +4,11 @@ const { readData, writeData, generateId } = require('../utils/db');
 const { auth, adminOnly } = require('../middleware/auth');
 
 // Get all amministrazioni
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { citta, servizi } = req.query;
-    const users = readData('users');
-    const amministrazioniData = readData('amministrazioni');
+    const users = await readData('users');
+    const amministrazioniData = await readData('amministrazioni');
 
     let amministrazioni = users
       .filter(u => u.tipo === 'amministrazione')
@@ -48,10 +48,10 @@ router.get('/', (req, res) => {
 });
 
 // Get single amministrazione
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const users = readData('users');
-    const amministrazioniData = readData('amministrazioni');
+    const users = await readData('users');
+    const amministrazioniData = await readData('amministrazioni');
     
     const user = users.find(u => u.id === req.params.id && u.tipo === 'amministrazione');
     
@@ -77,7 +77,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create/Update amministrazione profile
-router.post('/profile', auth, (req, res) => {
+router.post('/profile', auth, async (req, res) => {
   try {
     if (req.user.tipo !== 'amministrazione') {
       return res.status(403).json({ message: 'Solo per amministrazioni.' });
@@ -94,7 +94,7 @@ router.post('/profile', auth, (req, res) => {
       condominiGestiti
     } = req.body;
 
-    const amministrazioni = readData('amministrazioni');
+    const amministrazioni = await readData('amministrazioni');
     const index = amministrazioni.findIndex(a => a.userId === req.user.id);
 
     const profileData = {
@@ -119,7 +119,7 @@ router.post('/profile', auth, (req, res) => {
       amministrazioni[index] = { ...amministrazioni[index], ...profileData };
     }
 
-    writeData('amministrazioni', amministrazioni);
+    await writeData('amministrazioni', amministrazioni);
 
     res.json({
       message: 'Profilo aggiornato.',
@@ -132,9 +132,9 @@ router.post('/profile', auth, (req, res) => {
 });
 
 // Admin: verify amministrazione
-router.put('/:id/verify', auth, adminOnly, (req, res) => {
+router.put('/:id/verify', auth, adminOnly, async (req, res) => {
   try {
-    const amministrazioni = readData('amministrazioni');
+    const amministrazioni = await readData('amministrazioni');
     const index = amministrazioni.findIndex(a => a.userId === req.params.id);
 
     if (index === -1) {
@@ -143,7 +143,7 @@ router.put('/:id/verify', auth, adminOnly, (req, res) => {
 
     amministrazioni[index].verified = true;
     amministrazioni[index].verifiedAt = new Date().toISOString();
-    writeData('amministrazioni', amministrazioni);
+    await writeData('amministrazioni', amministrazioni);
 
     res.json({ message: 'Amministrazione verificata.' });
   } catch (error) {

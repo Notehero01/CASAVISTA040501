@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const { readData } = require('../utils/db');
 
 // Verifica token JWT
-const auth = (req, res, next) => {
+const auth = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     
@@ -13,7 +13,7 @@ const auth = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Verifica che l'utente esista ancora
-    const users = readData('users');
+    const users = await readData('users');
     const user = users.find(u => u.id === decoded.id);
     
     if (!user) {

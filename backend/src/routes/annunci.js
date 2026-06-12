@@ -27,7 +27,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 // Get all annunci (con filtri avanzati)
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { 
       tipo, 
@@ -53,7 +53,7 @@ router.get('/', (req, res) => {
       limit = 20
     } = req.query;
 
-    let annunci = readData('annunci');
+    let annunci = await readData('annunci');
 
     // Applica filtri base
     if (tipo) annunci = annunci.filter(a => a.tipo === tipo);
@@ -116,9 +116,9 @@ router.get('/', (req, res) => {
 });
 
 // Get single annuncio (supporta sia ID che slug)
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const annunci = readData('annunci');
+    const annunci = await readData('annunci');
     const { id } = req.params;
     
     // Cerca per ID o slug
@@ -136,9 +136,9 @@ router.get('/:id', (req, res) => {
 });
 
 // Incrementa visualizzazioni (endpoint separato)
-router.post('/:id/views', (req, res) => {
+router.post('/:id/views', async (req, res) => {
   try {
-    const annunci = readData('annunci');
+    const annunci = await readData('annunci');
     const { id } = req.params;
     
     const annuncio = annunci.find(a => a.id === id || a.slug === id);
@@ -147,7 +147,7 @@ router.post('/:id/views', (req, res) => {
     }
 
     annuncio.visualizzazioni = (annuncio.visualizzazioni || 0) + 1;
-    writeData('annunci', annunci);
+    await writeData('annunci', annunci);
 
     res.json({ visualizzazioni: annuncio.visualizzazioni });
   } catch (error) {
@@ -157,7 +157,7 @@ router.post('/:id/views', (req, res) => {
 });
 
 // Create annuncio (richiede auth)
-router.post('/', auth, (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const {
       titolo,
@@ -190,7 +190,7 @@ router.post('/', auth, (req, res) => {
       return res.status(400).json({ message: 'Campi obbligatori mancanti.' });
     }
 
-    const annunci = readData('annunci');
+    const annunci = await readData('annunci');
     const newId = generateId();
     
     const newAnnuncio = {
@@ -228,7 +228,7 @@ router.post('/', auth, (req, res) => {
     };
 
     annunci.push(newAnnuncio);
-    writeData('annunci', annunci);
+    await writeData('annunci', annunci);
 
     res.status(201).json({
       message: 'Annuncio creato con successo.',
@@ -241,9 +241,9 @@ router.post('/', auth, (req, res) => {
 });
 
 // Update annuncio
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
-    const annunci = readData('annunci');
+    const annunci = await readData('annunci');
     const index = annunci.findIndex(a => a.id === req.params.id);
 
     if (index === -1) {
@@ -261,7 +261,7 @@ router.put('/:id', auth, (req, res) => {
       updatedAt: new Date().toISOString()
     };
 
-    writeData('annunci', annunci);
+    await writeData('annunci', annunci);
 
     res.json({
       message: 'Annuncio aggiornato.',
@@ -274,9 +274,9 @@ router.put('/:id', auth, (req, res) => {
 });
 
 // Delete annuncio
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
-    const annunci = readData('annunci');
+    const annunci = await readData('annunci');
     const index = annunci.findIndex(a => a.id === req.params.id);
 
     if (index === -1) {
@@ -289,7 +289,7 @@ router.delete('/:id', auth, (req, res) => {
     }
 
     annunci.splice(index, 1);
-    writeData('annunci', annunci);
+    await writeData('annunci', annunci);
 
     res.json({ message: 'Annuncio eliminato.' });
   } catch (error) {
@@ -299,9 +299,9 @@ router.delete('/:id', auth, (req, res) => {
 });
 
 // Get featured annunci
-router.get('/featured/list', (req, res) => {
+router.get('/featured/list', async (req, res) => {
   try {
-    const annunci = readData('annunci');
+    const annunci = await readData('annunci');
     const featured = annunci
       .sort((a, b) => (b.visualizzazioni || 0) - (a.visualizzazioni || 0))
       .slice(0, 6);
@@ -312,9 +312,9 @@ router.get('/featured/list', (req, res) => {
 });
 
 // Get recent annunci
-router.get('/recent/list', (req, res) => {
+router.get('/recent/list', async (req, res) => {
   try {
-    const annunci = readData('annunci');
+    const annunci = await readData('annunci');
     const recent = annunci
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 6);
