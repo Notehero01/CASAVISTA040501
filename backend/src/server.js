@@ -11,6 +11,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const { initDatabase, initAdmin, usePostgres } = require('./utils/db');
+const { isObjectStorageConfigured } = require('./utils/storage');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -105,7 +106,10 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    database: usePostgres ? 'postgres' : 'json',
+    storage: isObjectStorageConfigured() ? 'r2' : 'local',
+    commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || null
   });
 });
 
