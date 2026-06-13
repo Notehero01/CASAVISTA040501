@@ -58,6 +58,7 @@ app.use(cors({
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minuti
   max: 100, // 100 richieste per IP
+  skip: (req) => req.path === '/api/health',
   message: 'Troppe richieste, riprova più tardi.'
 });
 app.use(limiter);
