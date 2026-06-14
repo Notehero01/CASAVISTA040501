@@ -6,6 +6,52 @@ const nodemailer = require('nodemailer');
 // Configurazione transporter (usa variabili d'ambiente in produzione)
 let transporter = null;
 
+function getSmtpOptions(overrides = {}) {
+  const smtpPort = Number(overrides.port || process.env.SMTP_PORT || 587);
+  const smtpSecure = overrides.secure !== undefined
+    ? overrides.secure
+    : process.env.SMTP_SECURE
+      ? process.env.SMTP_SECURE === 'true'
+      : smtpPort === 465;
+
+  return {
+    host: overrides.host || process.env.SMTP_HOST,
+    port: smtpPort,
+    secure: smtpSecure,
+    connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT || 15000),
+    greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT || 15000),
+    auth: process.env.SMTP_USER && process.env.SMTP_PASS
+      ? {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      : undefined
+  };
+}
+
+function getSmtpFallbackOptions(primaryOptions) {
+  const fallbackHost = process.env.SMTP_FALLBACK_HOST;
+  const fallbackPort = process.env.SMTP_FALLBACK_PORT;
+
+  if (fallbackHost || fallbackPort) {
+    return [getSmtpOptions({
+      host: fallbackHost || primaryOptions.host,
+      port: Number(fallbackPort || primaryOptions.port),
+      secure: process.env.SMTP_FALLBACK_SECURE === 'true'
+    })];
+  }
+
+  if (primaryOptions.port === 465) {
+    return [getSmtpOptions({
+      host: primaryOptions.host,
+      port: 587,
+      secure: false
+    })];
+  }
+
+  return [];
+}
+
 function getTransporter() {
   if (transporter) return transporter;
   
@@ -28,25 +74,10 @@ function getTransporter() {
         pass: process.env.GMAIL_PASS
       }
     });
-  }
+  } 
   // Configurazione SMTP generica
   else if (process.env.SMTP_HOST) {
-    const smtpPort = Number(process.env.SMTP_PORT || 587);
-    const smtpSecure = process.env.SMTP_SECURE
-      ? process.env.SMTP_SECURE === 'true'
-      : smtpPort === 465;
-
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: smtpPort,
-      secure: smtpSecure,
-      auth: process.env.SMTP_USER && process.env.SMTP_PASS
-        ? {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-          }
-        : undefined
-    });
+    transporter = nodemailer.createTransport(getSmtpOptions());
   }
   
   return transporter;
@@ -129,17 +160,41 @@ async function sendEmail(to, template, data) {
   
   try {
     const { subject, html } = templates[template](...data);
-    
-    const info = await transport.sendMail({
+    const mailOptions = {
       from: process.env.EMAIL_FROM || (process.env.SMTP_USER ? `CasaVista <${process.env.SMTP_USER}>` : 'noreply@casavista.it'),
       to,
       subject,
       html
-    });
+    };
+    
+    const info = await transport.sendMail(mailOptions);
     
     console.log('Email sent:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
+    if (process.env.SMTP_HOST) {
+      const fallbackOptions = getSmtpFallbackOptions(getSmtpOptions());
+
+      for (const options of fallbackOptions) {
+        try {
+          console.log(`Retrying email with SMTP fallback ${options.host}:${options.port}`);
+          const fallbackTransport = nodemailer.createTransport(options);
+          const { subject, html } = templates[template](...data);
+          const info = await fallbackTransport.sendMail({
+            from: process.env.EMAIL_FROM || (process.env.SMTP_USER ? `CasaVista <${process.env.SMTP_USER}>` : 'noreply@casavista.it'),
+            to,
+            subject,
+            html
+          });
+
+          console.log('Email sent with fallback:', info.messageId);
+          return { success: true, messageId: info.messageId };
+        } catch (fallbackError) {
+          console.error(`SMTP fallback ${options.host}:${options.port} failed:`, fallbackError);
+        }
+      }
+    }
+
     console.error('Email send error:', error);
     return { success: false, error: error.message };
   }
