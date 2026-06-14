@@ -273,13 +273,15 @@ SENDGRID_API_KEY=la_tua_api_key
 EMAIL_FROM=noreply@tuodominio.it
 ```
 
-### Opzione 2: Gmail SMTP (per test)
+### Opzione 2: Aruba SMTP
 
 ```
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=tua_email@gmail.com
-SMTP_PASS=password_app_gmail
+SMTP_HOST=smtps.aruba.it
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=noreply@casavista.it
+SMTP_PASS=password_casella_aruba
+EMAIL_FROM=CasaVista <noreply@casavista.it>
 ```
 
 ---

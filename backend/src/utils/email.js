@@ -31,14 +31,21 @@ function getTransporter() {
   }
   // Configurazione SMTP generica
   else if (process.env.SMTP_HOST) {
+    const smtpPort = Number(process.env.SMTP_PORT || 587);
+    const smtpSecure = process.env.SMTP_SECURE
+      ? process.env.SMTP_SECURE === 'true'
+      : smtpPort === 465;
+
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: process.env.SMTP_USER && process.env.SMTP_PASS
+        ? {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        : undefined
     });
   }
   
@@ -124,7 +131,7 @@ async function sendEmail(to, template, data) {
     const { subject, html } = templates[template](...data);
     
     const info = await transport.sendMail({
-      from: process.env.EMAIL_FROM || 'noreply@casavista.it',
+      from: process.env.EMAIL_FROM || (process.env.SMTP_USER ? `CasaVista <${process.env.SMTP_USER}>` : 'noreply@casavista.it'),
       to,
       subject,
       html
