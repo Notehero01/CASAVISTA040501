@@ -17,6 +17,8 @@ import { ValutazionePage } from '@/pages/ValutazionePage';
 import { MutuoPage } from '@/pages/MutuoPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegistrazionePage } from '@/pages/RegistrazionePage';
+import { PasswordDimenticataPage } from '@/pages/PasswordDimenticataPage';
+import { ReimpostaPasswordPage } from '@/pages/ReimpostaPasswordPage';
 import { AmministrazioniPage } from '@/pages/AmministrazioniPage';
 import { PreferitiPage } from '@/pages/PreferitiPage';
 import { ConfrontoPage } from '@/pages/ConfrontoPage';
@@ -68,6 +70,8 @@ function App() {
             <Route path="/valutazione" element={<ValutazionePage />} />
             <Route path="/mutuo" element={<MutuoPage />} />
             <Route path="/login" element={<LoginPage onLogin={login} />} />
+            <Route path="/password-dimenticata" element={<PasswordDimenticataPage />} />
+            <Route path="/reimposta-password/:token" element={<ReimpostaPasswordPage />} />
             <Route path="/registrazione" element={<RegistrazionePage onRegister={register} />} />
             <Route path="/amministrazioni" element={<AmministrazioniPage />} />
             <Route path="/preferiti" element={<PreferitiPage />} />

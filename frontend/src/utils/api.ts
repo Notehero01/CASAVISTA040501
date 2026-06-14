@@ -57,6 +57,20 @@ export const authApi = {
       body: data,
       auth: false 
     }),
+
+  forgotPassword: (email: string) =>
+    api<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+      auth: false
+    }),
+
+  resetPassword: (token: string, password: string) =>
+    api<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: { token, password },
+      auth: false
+    }),
   
   me: () => api<{ user: any }>('/auth/me'),
   

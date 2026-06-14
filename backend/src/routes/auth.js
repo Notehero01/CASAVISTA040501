@@ -1,9 +1,30 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const router = express.Router();
 const { readData, writeData, generateId } = require('../utils/db');
 const { hashPassword, verifyPassword } = require('../utils/crypto');
 const { sendEmail } = require('../utils/email');
+
+function getClientOrigin() {
+  const origin = (process.env.CLIENT_ORIGIN || 'https://casavista.it')
+    .split(',')[0]
+    .trim();
+  return origin || 'https://casavista.it';
+}
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function createPasswordResetToken() {
+  const token = crypto.randomBytes(32).toString('hex');
+  return {
+    token,
+    tokenHash: hashResetToken(token),
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+  };
+}
 
 // Register
 router.post('/register', async (req, res) => {
@@ -120,6 +141,78 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ message: 'Errore del server.' });
+  }
+});
+
+// Request password reset
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email obbligatoria.' });
+    }
+
+    const users = await readData('users');
+    const user = users.find(u => u.email === email.toLowerCase());
+
+    if (user) {
+      const reset = createPasswordResetToken();
+      user.passwordResetToken = reset.tokenHash;
+      user.passwordResetExpires = reset.expiresAt;
+      user.updatedAt = new Date().toISOString();
+      await writeData('users', users);
+
+      const resetLink = `${getClientOrigin()}/reimposta-password/${reset.token}`;
+      sendEmail(user.email, 'passwordReset', [resetLink]).catch(err => {
+        console.log('Password reset email failed:', err.message);
+      });
+    }
+
+    res.json({
+      message: 'Se l\'email risulta registrata, riceverai un link per reimpostare la password.'
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Errore del server.' });
+  }
+});
+
+// Reset password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token e nuova password sono obbligatori.' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'La password deve essere di almeno 6 caratteri.' });
+    }
+
+    const users = await readData('users');
+    const tokenHash = hashResetToken(token);
+    const user = users.find(u =>
+      u.passwordResetToken === tokenHash &&
+      u.passwordResetExpires &&
+      new Date(u.passwordResetExpires).getTime() > Date.now()
+    );
+
+    if (!user) {
+      return res.status(400).json({ message: 'Link non valido o scaduto.' });
+    }
+
+    user.password = hashPassword(password);
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    user.updatedAt = new Date().toISOString();
+    await writeData('users', users);
+
+    res.json({ message: 'Password aggiornata. Ora puoi accedere.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Errore del server.' });
   }
 });
