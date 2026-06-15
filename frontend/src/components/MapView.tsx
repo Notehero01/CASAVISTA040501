@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { MapPin, X, Bed, Bath, Maximize } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Bath, Bed, LocateFixed, MapPin, Maximize, Navigation, Search, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import type { Annuncio } from '@/types/annuncio';
 
 interface MapViewProps {
@@ -9,210 +12,507 @@ interface MapViewProps {
   center?: { lat: number; lng: number };
   zoom?: number;
   height?: string;
+  showPoi?: boolean;
 }
 
-// Componente mappa che usa Google Maps API
-declare global {
-  interface Window {
-    google: any;
-    initMap: () => void;
-  }
+interface AddressSearchProps {
+  onSelect: (address: string, coordinates: { lat: number; lng: number }) => void;
+  placeholder?: string;
 }
 
-export function MapView({ annunci, onAnnuncioClick, center, zoom = 12, height = '500px' }: MapViewProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<any>(null);
-  const [markers, setMarkers] = useState<any[]>([]);
-  const [selectedAnnuncio, setSelectedAnnuncio] = useState<Annuncio | null>(null);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+interface GeoResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
 
-  // Carica script Google Maps
+interface Poi {
+  id: number;
+  lat: number;
+  lon: number;
+  name: string;
+  type: string;
+  label: string;
+  color: string;
+}
+
+interface PoiElement {
+  id: number;
+  type: string;
+  lat: number;
+  lon: number;
+  tags?: Record<string, string>;
+}
+
+const DEFAULT_CENTER: [number, number] = [44.6471, 10.9252]; // Modena
+
+const POI_STYLE: Record<string, { label: string; color: string }> = {
+  restaurant: { label: 'Ristorante', color: '#ff6b35' },
+  cafe: { label: 'Caffe', color: '#8b5a2b' },
+  bar: { label: 'Bar', color: '#9b59b6' },
+  pharmacy: { label: 'Farmacia', color: '#e74c3c' },
+  bank: { label: 'Banca', color: '#3498db' },
+  supermarket: { label: 'Supermercato', color: '#27ae60' },
+  hotel: { label: 'Hotel', color: '#f59e0b' },
+};
+
+function formatPrice(annuncio: Annuncio) {
+  return `EUR ${annuncio.prezzo.toLocaleString('it-IT')}${annuncio.tipo === 'affitto' ? '/mese' : ''}`;
+}
+
+function getAnnuncioUrl(annuncio: Annuncio) {
+  return `/annuncio/${annuncio.slug || annuncio.id}`;
+}
+
+function createAnnuncioIcon(tipo: Annuncio['tipo']) {
+  const color = tipo === 'vendita' ? '#e74c3c' : '#2563eb';
+
+  return L.divIcon({
+    className: 'casavista-property-marker',
+    html: `
+      <div style="width:40px;height:48px;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.25));">
+        <svg width="40" height="48" viewBox="0 0 40 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2C10.1 2 2 10.1 2 20c0 13.5 18 26 18 26s18-12.5 18-26C38 10.1 29.9 2 20 2Z" fill="${color}" stroke="white" stroke-width="3"/>
+          <path d="M12.5 22.5V18l7.5-5.5 7.5 5.5v4.5c0 .8-.7 1.5-1.5 1.5h-3.5v-5h-5v5H14c-.8 0-1.5-.7-1.5-1.5Z" fill="white"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [40, 48],
+    iconAnchor: [20, 48],
+    popupAnchor: [0, -44],
+  });
+}
+
+function createPoiIcon(poi: Poi) {
+  return L.divIcon({
+    className: 'casavista-poi-marker',
+    html: `
+      <div style="width:26px;height:26px;border-radius:999px;background:${poi.color};border:2px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.22);display:flex;align-items:center;justify-content:center;">
+        <span style="width:7px;height:7px;border-radius:999px;background:white;display:block;"></span>
+      </div>
+    `,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+    popupAnchor: [0, -12],
+  });
+}
+
+function createClusterIcon(cluster: { getChildCount: () => number }) {
+  const count = cluster.getChildCount();
+  const size = count > 99 ? 50 : count > 24 ? 44 : 38;
+
+  return L.divIcon({
+    className: 'casavista-cluster-marker',
+    html: `
+      <div style="width:${size}px;height:${size}px;border-radius:999px;background:#111827;color:white;border:3px solid white;box-shadow:0 6px 18px rgba(17,24,39,.25);display:flex;align-items:center;justify-content:center;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;font-weight:700;font-size:13px;">
+        ${count}
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
+function FitMapToContent({ annunci, center, zoom }: { annunci: Annuncio[]; center?: { lat: number; lng: number }; zoom: number }) {
+  const map = useMap();
+
   useEffect(() => {
-    if (window.google) {
-      setScriptLoaded(true);
+    const points = annunci
+      .map((annuncio) => annuncio.coordinate)
+      .filter((coordinate): coordinate is { lat: number; lng: number } => Boolean(coordinate));
+
+    if (points.length === 1) {
+      map.setView([points[0].lat, points[0].lng], Math.max(zoom, 15), { animate: true });
       return;
     }
 
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setScriptLoaded(true);
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
-
-  // Inizializza mappa
-  useEffect(() => {
-    if (!scriptLoaded || !mapRef.current || !window.google) return;
-
-    const defaultCenter = center || { lat: 41.9028, lng: 12.4964 }; // Roma
-    
-    const newMap = new window.google.maps.Map(mapRef.current, {
-      center: defaultCenter,
-      zoom: zoom,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: true,
-      zoomControl: true,
-    });
-
-    setMap(newMap);
-  }, [scriptLoaded, center, zoom]);
-
-  // Aggiungi marker per ogni annuncio
-  useEffect(() => {
-    if (!map || !window.google) return;
-
-    // Rimuovi marker precedenti
-    markers.forEach(marker => marker.setMap(null));
-
-    const newMarkers: any[] = [];
-    const bounds = new window.google.maps.LatLngBounds();
-
-    annunci.forEach((annuncio) => {
-      if (!annuncio.coordinate) return;
-
-      const marker = new window.google.maps.Marker({
-        position: { lat: annuncio.coordinate.lat, lng: annuncio.coordinate.lng },
-        map: map,
-        title: annuncio.titolo,
-        icon: {
-          url: annuncio.tipo === 'vendita' 
-            ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2U3NGMzYyI+PHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDljMCA1LjI1IDcgMTMgNyAxM3M3LTcuNzUgNy0xM2MwLTMuODctMy4xMy03LTctN3ptMCA5LjVjLTEuMzggMC0yLjUtMS4xMi0yLjUtMi41czEuMTItMi41IDIuNS0yLjUgMi41IDEuMTIgMi41IDIuNS0xLjEyIDIuNS0yLjUgMi41eiIvPjwvc3ZnPg=='
-            : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzI1NmViYiI+PHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDljMCA1LjI1IDcgMTMgNyAxM3M3LTcuNzUgNy0xM2MwLTMuODctMy4xMy03LTctN3ptMCA5LjVjLTEuMzggMC0yLjUtMS4xMi0yLjUtMi41czEuMTItMi41IDIuNS0yLjUgMi41IDEuMTIgMi41IDIuNS0xLjEyIDIuNS0yLjUgMi41eiIvPjwvc3ZnPg==',
-          scaledSize: new window.google.maps.Size(40, 40),
-        },
-      });
-
-      marker.addListener('click', () => {
-        setSelectedAnnuncio(annuncio);
-        if (onAnnuncioClick) onAnnuncioClick(annuncio);
-      });
-
-      newMarkers.push(marker);
-      bounds.extend({ lat: annuncio.coordinate.lat, lng: annuncio.coordinate.lng });
-    });
-
-    setMarkers(newMarkers);
-
-    // Centra mappa sui marker se ce ne sono
-    if (newMarkers.length > 0) {
-      map.fitBounds(bounds);
-      // Se c'è un solo marker, zooma di più
-      if (newMarkers.length === 1) {
-        map.setZoom(15);
-      }
+    if (points.length > 1) {
+      map.fitBounds(points.map((point) => [point.lat, point.lng]), { padding: [40, 40], maxZoom: 15 });
+      return;
     }
-  }, [map, annunci]);
 
-  if (!scriptLoaded) {
-    return (
-      <div className="flex items-center justify-center bg-gray-100 rounded-lg" style={{ height }}>
-        <div className="text-center">
-          <MapPin className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-gray-500">Caricamento mappa...</p>
-        </div>
-      </div>
-    );
-  }
+    if (center) {
+      map.setView([center.lat, center.lng], zoom, { animate: true });
+      return;
+    }
 
+    map.setView(DEFAULT_CENTER, 12);
+  }, [annunci, center, map, zoom]);
+
+  return null;
+}
+
+function MapController({ flyTarget, zoomAction }: { flyTarget: [number, number] | null; zoomAction: 'in' | 'out' | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (flyTarget) map.flyTo(flyTarget, 15, { duration: 0.8 });
+  }, [flyTarget, map]);
+
+  useEffect(() => {
+    if (zoomAction === 'in') map.zoomIn();
+    if (zoomAction === 'out') map.zoomOut();
+  }, [map, zoomAction]);
+
+  return null;
+}
+
+function PoiLoader({ enabled, onLoad, onLoading }: { enabled: boolean; onLoad: (pois: Poi[]) => void; onLoading: (loading: boolean) => void }) {
+  const timerRef = useRef<number | null>(null);
+
+  const fetchPois = useCallback(
+    (map: L.Map) => {
+      if (!enabled) return;
+
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+
+      timerRef.current = window.setTimeout(async () => {
+        const bounds = map.getBounds();
+        const south = bounds.getSouth();
+        const west = bounds.getWest();
+        const north = bounds.getNorth();
+        const east = bounds.getEast();
+
+        onLoading(true);
+
+        try {
+          const query = `[out:json][timeout:12];(node["amenity"~"restaurant|cafe|bar|pharmacy|bank|supermarket"](${south},${west},${north},${east});node["tourism"="hotel"](${south},${west},${north},${east}););out body 120;`;
+          const response = await fetch('https://overpass-api.de/api/interpreter', {
+            method: 'POST',
+            body: new URLSearchParams({ data: query }),
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          });
+          const data = await response.json();
+          const parsed = ((data.elements || []) as PoiElement[])
+            .filter((item) => item.type === 'node' && item.tags?.name)
+            .map((item) => {
+              const type = item.tags?.amenity || item.tags?.tourism || 'poi';
+              const style = POI_STYLE[type] || { label: 'Luogo', color: '#64748b' };
+
+              return {
+                id: item.id,
+                lat: item.lat,
+                lon: item.lon,
+                name: item.tags?.name || 'Luogo',
+                type,
+                ...style,
+              };
+            });
+
+          onLoad(parsed);
+        } catch {
+          onLoad([]);
+        } finally {
+          onLoading(false);
+        }
+      }, 600);
+    },
+    [enabled, onLoad, onLoading],
+  );
+
+  const map = useMapEvents({
+    moveend: () => fetchPois(map),
+    zoomend: () => fetchPois(map),
+  });
+
+  useEffect(() => {
+    fetchPois(map);
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
+  }, [fetchPois, map]);
+
+  return null;
+}
+
+function ControlButton({ children, label, onClick }: { children: ReactNode; label: string; onClick: () => void }) {
   return (
-    <div className="relative">
-      <div ref={mapRef} className="rounded-lg overflow-hidden" style={{ height }} />
-      
-      {/* Popup annuncio selezionato */}
-      {selectedAnnuncio && (
-        <div className="absolute bottom-4 left-4 right-4 bg-white rounded-xl shadow-lg p-4 max-w-sm">
-          <button 
-            onClick={() => setSelectedAnnuncio(null)}
-            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          
-          <div className="flex gap-3">
-            <img 
-              src={selectedAnnuncio.immagini[0] || 'https://via.placeholder.com/100x75'} 
-              alt={selectedAnnuncio.titolo}
-              className="w-24 h-16 object-cover rounded-lg"
-            />
-            <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-sm truncate">{selectedAnnuncio.titolo}</h4>
-              <p className="text-gray-500 text-xs">{selectedAnnuncio.citta}</p>
-              <div className="flex gap-2 mt-1 text-xs text-gray-600">
-                <span className="flex items-center gap-0.5"><Bed className="h-3 w-3" />{selectedAnnuncio.camere}</span>
-                <span className="flex items-center gap-0.5"><Bath className="h-3 w-3" />{selectedAnnuncio.bagni}</span>
-                <span className="flex items-center gap-0.5"><Maximize className="h-3 w-3" />{selectedAnnuncio.superficie}m²</span>
-              </div>
-              <p className="text-[#e74c3c] font-bold mt-1">€ {selectedAnnuncio.prezzo.toLocaleString()}</p>
-            </div>
-          </div>
-          
-          <Button 
-            size="sm" 
-            className="w-full mt-3 bg-[#e74c3c]"
-            onClick={() => window.location.href = `/annuncio/${selectedAnnuncio.id}`}
-          >
-            Vedi dettagli
-          </Button>
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      title={label}
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-800 shadow-lg transition hover:scale-105 hover:bg-gray-50"
+    >
+      {children}
+    </button>
+  );
+}
+
+function PropertyPopup({ annuncio, onAnnuncioClick }: { annuncio: Annuncio; onAnnuncioClick?: (annuncio: Annuncio) => void }) {
+  return (
+    <div className="w-64 overflow-hidden rounded-xl bg-white">
+      <img
+        src={annuncio.immagini[0] || 'https://via.placeholder.com/320x180'}
+        alt={annuncio.titolo}
+        className="h-32 w-full object-cover"
+      />
+      <div className="space-y-2 p-3">
+        <div>
+          <p className="text-lg font-bold text-[#e74c3c]">{formatPrice(annuncio)}</p>
+          <p className="line-clamp-2 text-sm font-semibold text-gray-900">{annuncio.titolo}</p>
+          <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+            <MapPin className="h-3 w-3" />
+            {annuncio.citta}
+          </p>
         </div>
-      )}
+        <div className="flex justify-between border-y py-2 text-xs text-gray-600">
+          <span className="flex items-center gap-1">
+            <Bed className="h-3 w-3" />
+            {annuncio.camere}
+          </span>
+          <span className="flex items-center gap-1">
+            <Bath className="h-3 w-3" />
+            {annuncio.bagni}
+          </span>
+          <span className="flex items-center gap-1">
+            <Maximize className="h-3 w-3" />
+            {annuncio.superficie} mq
+          </span>
+        </div>
+        <a
+          href={getAnnuncioUrl(annuncio)}
+          onClick={() => onAnnuncioClick?.(annuncio)}
+          className="block rounded-lg bg-[#e74c3c] px-3 py-2 text-center text-sm font-semibold text-white"
+        >
+          Vedi dettagli
+        </a>
+      </div>
     </div>
   );
 }
 
-// Componente per ricerca indirizzo con autocomplete
-export function AddressSearch({ onSelect, placeholder = 'Cerca indirizzo...' }: { onSelect: (address: string, coordinates: { lat: number; lng: number }) => void; placeholder?: string }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+export function MapView({ annunci, onAnnuncioClick, center, zoom = 12, height = '500px', showPoi = true }: MapViewProps) {
+  const [isSatellite, setIsSatellite] = useState(false);
+  const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
+  const [zoomAction, setZoomAction] = useState<'in' | 'out' | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [poiList, setPoiList] = useState<Poi[]>([]);
+  const [poiLoading, setPoiLoading] = useState(false);
+
+  const annunciConCoordinate = useMemo(() => annunci.filter((annuncio) => annuncio.coordinate), [annunci]);
+  const mapCenter: [number, number] = center
+    ? [center.lat, center.lng]
+    : annunciConCoordinate[0]?.coordinate
+      ? [annunciConCoordinate[0].coordinate.lat, annunciConCoordinate[0].coordinate.lng]
+      : DEFAULT_CENTER;
+
+  const triggerZoom = (action: 'in' | 'out') => {
+    setZoomAction(action);
+    window.setTimeout(() => setZoomAction(null), 80);
+  };
+
+  const searchAddress = async () => {
+    const query = searchText.trim();
+    if (query.length < 3) return;
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=it`,
+        { headers: { 'Accept-Language': 'it' } },
+      );
+      const results = (await response.json()) as GeoResult[];
+      const first = results[0];
+      if (first) setFlyTarget([Number(first.lat), Number(first.lon)]);
+    } catch {
+      // Search is optional; keep the map usable even when the geocoder is unavailable.
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm" style={{ height }}>
+      <div className="absolute left-3 right-3 top-3 z-[600] flex max-w-md gap-2 sm:left-4 sm:right-auto sm:w-96">
+        <div className="flex h-11 flex-1 items-center rounded-full border border-gray-200 bg-white px-4 shadow-lg">
+          <Search className="h-4 w-4 shrink-0 text-gray-400" />
+          <input
+            type="text"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && searchAddress()}
+            placeholder="Cerca indirizzo, via o citta"
+            className="min-w-0 flex-1 bg-transparent px-3 text-sm outline-none"
+          />
+          {searchText && (
+            <button type="button" aria-label="Cancella ricerca" onClick={() => setSearchText('')} className="text-gray-400 hover:text-gray-700">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={searchAddress}
+          className="h-11 rounded-full bg-[#e74c3c] px-4 text-sm font-semibold text-white shadow-lg transition hover:bg-[#c0392b]"
+        >
+          Cerca
+        </button>
+      </div>
+
+      <div className="absolute right-3 top-3 z-[600] hidden flex-col gap-2 sm:flex">
+        <button
+          type="button"
+          onClick={() => setIsSatellite(false)}
+          className={`rounded-full px-4 py-2 text-sm font-semibold shadow-lg ${!isSatellite ? 'bg-[#e74c3c] text-white' : 'bg-white text-gray-800'}`}
+        >
+          Mappa
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsSatellite(true)}
+          className={`rounded-full px-4 py-2 text-sm font-semibold shadow-lg ${isSatellite ? 'bg-[#e74c3c] text-white' : 'bg-white text-gray-800'}`}
+        >
+          Satellite
+        </button>
+      </div>
+
+      <div className="absolute bottom-4 right-4 z-[600] flex flex-col gap-2">
+        <ControlButton label="Zoom avanti" onClick={() => triggerZoom('in')}>
+          <ZoomIn className="h-5 w-5" />
+        </ControlButton>
+        <ControlButton label="Zoom indietro" onClick={() => triggerZoom('out')}>
+          <ZoomOut className="h-5 w-5" />
+        </ControlButton>
+        <ControlButton label="Centra annunci" onClick={() => setFlyTarget(mapCenter)}>
+          <Navigation className="h-5 w-5" />
+        </ControlButton>
+        <ControlButton
+          label="Usa la mia posizione"
+          onClick={() => navigator.geolocation?.getCurrentPosition((position) => setFlyTarget([position.coords.latitude, position.coords.longitude]))}
+        >
+          <LocateFixed className="h-5 w-5" />
+        </ControlButton>
+      </div>
+
+      {showPoi && (
+        <div className="absolute bottom-4 left-4 z-[600] rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-lg">
+          {poiLoading ? 'Carico luoghi...' : `${poiList.length} luoghi vicini`}
+        </div>
+      )}
+
+      <MapContainer center={mapCenter} zoom={zoom} minZoom={5} maxZoom={19} scrollWheelZoom doubleClickZoom zoomControl={false} style={{ height: '100%', width: '100%' }}>
+        {!isSatellite ? (
+          <TileLayer
+            attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            subdomains={['a', 'b', 'c', 'd']}
+            maxZoom={19}
+          />
+        ) : (
+          <>
+            <TileLayer attribution='Tiles &copy; Esri' url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" maxZoom={19} />
+            <TileLayer
+              attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+              subdomains={['a', 'b', 'c', 'd']}
+              maxZoom={19}
+              opacity={0.9}
+            />
+          </>
+        )}
+
+        <FitMapToContent annunci={annunciConCoordinate} center={center} zoom={zoom} />
+        <MapController flyTarget={flyTarget} zoomAction={zoomAction} />
+        {showPoi && <PoiLoader enabled={showPoi} onLoad={setPoiList} onLoading={setPoiLoading} />}
+
+        <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} spiderfyOnMaxZoom iconCreateFunction={createClusterIcon}>
+          {annunciConCoordinate.map((annuncio) => (
+            <Marker
+              key={annuncio.id}
+              position={[annuncio.coordinate!.lat, annuncio.coordinate!.lng]}
+              icon={createAnnuncioIcon(annuncio.tipo)}
+              eventHandlers={{ click: () => onAnnuncioClick?.(annuncio) }}
+            >
+              <Popup closeButton={false} minWidth={260}>
+                <PropertyPopup annuncio={annuncio} onAnnuncioClick={onAnnuncioClick} />
+              </Popup>
+            </Marker>
+          ))}
+        </MarkerClusterGroup>
+
+        {showPoi &&
+          poiList.map((poi) => (
+            <Marker key={`poi-${poi.id}`} position={[poi.lat, poi.lon]} icon={createPoiIcon(poi)}>
+              <Popup closeButton={false}>
+                <div className="min-w-40 p-2">
+                  <p className="text-sm font-semibold text-gray-900">{poi.name}</p>
+                  <p className="text-xs text-gray-500">{poi.label}</p>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+      </MapContainer>
+    </div>
+  );
+}
+
+export function AddressSearch({ onSelect, placeholder = 'Cerca indirizzo...' }: AddressSearchProps) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<GeoResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (window.google) {
-      setScriptLoaded(true);
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
+      setResults([]);
       return;
     }
 
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setScriptLoaded(true);
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!scriptLoaded || !inputRef.current || !window.google) return;
-
-    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-      types: ['address'],
-      componentRestrictions: { country: 'it' },
-    });
-
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (place.geometry) {
-        onSelect(place.formatted_address, {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng(),
-        });
+    const timeout = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&limit=5&countrycodes=it&addressdetails=1`,
+          { headers: { 'Accept-Language': 'it' } },
+        );
+        const data = (await response.json()) as GeoResult[];
+        setResults(data);
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
       }
-    });
-  }, [scriptLoaded, onSelect]);
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [query]);
+
+  const selectResult = (result: GeoResult) => {
+    setQuery(result.display_name);
+    setOpen(false);
+    onSelect(result.display_name, { lat: Number(result.lat), lng: Number(result.lon) });
+  };
 
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      placeholder={placeholder}
-      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#e74c3c] focus:border-transparent"
-    />
+    <div className="relative">
+      <div className="relative">
+        <MapPin className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          placeholder={placeholder}
+          className="w-full rounded-lg border px-10 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#e74c3c]"
+        />
+        {loading && <span className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-[#e74c3c] border-t-transparent" />}
+      </div>
+
+      {open && results.length > 0 && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-72 overflow-auto rounded-lg border bg-white shadow-xl">
+          {results.map((result) => (
+            <button
+              key={result.place_id}
+              type="button"
+              onClick={() => selectResult(result)}
+              className="block w-full border-b px-4 py-3 text-left text-sm last:border-b-0 hover:bg-gray-50"
+            >
+              {result.display_name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
