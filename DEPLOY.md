@@ -263,7 +263,17 @@ Vai su Settings → Domains → Add Domain
 
 Per inviare email (verifica account, notifiche):
 
-### Opzione 1: SendGrid (Gratuito fino a 100 email/giorno)
+### Opzione 1: Brevo API
+
+1. Registrati su [brevo.com](https://www.brevo.com)
+2. Crea API Key
+3. Aggiungi al backend `.env`:
+```
+BREVO_API_KEY=la_tua_api_key
+EMAIL_FROM=CasaVista <noreply@tuodominio.it>
+```
+
+### Opzione 2: SendGrid
 
 1. Registrati su [sendgrid.com](https://sendgrid.com)
 2. Crea API Key
@@ -273,7 +283,7 @@ SENDGRID_API_KEY=la_tua_api_key
 EMAIL_FROM=noreply@tuodominio.it
 ```
 
-### Opzione 2: Aruba SMTP
+### Opzione 3: Aruba SMTP
 
 ```
 SMTP_HOST=smtps.aruba.it
@@ -361,7 +371,7 @@ docker stats
 - [ ] SSL attivo (HTTPS funziona)
 - [ ] JWT_SECRET cambiato (non quello di default)
 - [ ] Admin password cambiata
-- [ ] Email configurata (SendGrid)
+- [ ] Email configurata (Brevo o SendGrid)
 - [ ] Database migrato a PostgreSQL (opzionale ma consigliato)
 - [ ] Backup automatico configurato
 - [ ] Google Analytics aggiunto

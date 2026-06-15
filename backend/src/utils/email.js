@@ -6,6 +6,61 @@ const nodemailer = require('nodemailer');
 // Configurazione transporter (usa variabili d'ambiente in produzione)
 let transporter = null;
 
+function getEmailTemplate(template, data) {
+  return templates[template](...data);
+}
+
+function getDefaultSenderAddress() {
+  return process.env.EMAIL_FROM
+    || (process.env.SMTP_USER ? `CasaVista <${process.env.SMTP_USER}>` : 'CasaVista <noreply@casavista.it>');
+}
+
+function parseSender(senderValue) {
+  const fallback = { name: 'CasaVista', email: 'noreply@casavista.it' };
+  if (!senderValue) return fallback;
+
+  const match = senderValue.match(/^(.*?)\s*<([^>]+)>$/);
+  if (match) {
+    return {
+      name: match[1].trim() || fallback.name,
+      email: match[2].trim()
+    };
+  }
+
+  return {
+    name: process.env.EMAIL_FROM_NAME || fallback.name,
+    email: senderValue.trim()
+  };
+}
+
+async function sendWithBrevo(to, subject, html) {
+  const sender = parseSender(process.env.EMAIL_FROM || process.env.BREVO_SENDER_EMAIL);
+
+  const response = await fetch(process.env.BREVO_API_URL || 'https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      sender,
+      to: [{ email: to }],
+      subject,
+      htmlContent: html
+    })
+  });
+
+  const body = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message = body.message || `Brevo API error ${response.status}`;
+    throw new Error(message);
+  }
+
+  return body;
+}
+
 function getSmtpOptions(overrides = {}) {
   const smtpPort = Number(overrides.port || process.env.SMTP_PORT || 587);
   const smtpSecure = overrides.secure !== undefined
@@ -151,6 +206,19 @@ const templates = {
 
 // Funzione per inviare email
 async function sendEmail(to, template, data) {
+  const { subject, html } = getEmailTemplate(template, data);
+
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const info = await sendWithBrevo(to, subject, html);
+      console.log('Email sent with Brevo:', info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error('Brevo email send error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   const transport = getTransporter();
   
   if (!transport) {
@@ -159,9 +227,8 @@ async function sendEmail(to, template, data) {
   }
   
   try {
-    const { subject, html } = templates[template](...data);
     const mailOptions = {
-      from: process.env.EMAIL_FROM || (process.env.SMTP_USER ? `CasaVista <${process.env.SMTP_USER}>` : 'noreply@casavista.it'),
+      from: getDefaultSenderAddress(),
       to,
       subject,
       html
@@ -179,9 +246,8 @@ async function sendEmail(to, template, data) {
         try {
           console.log(`Retrying email with SMTP fallback ${options.host}:${options.port}`);
           const fallbackTransport = nodemailer.createTransport(options);
-          const { subject, html } = templates[template](...data);
           const info = await fallbackTransport.sendMail({
-            from: process.env.EMAIL_FROM || (process.env.SMTP_USER ? `CasaVista <${process.env.SMTP_USER}>` : 'noreply@casavista.it'),
+            from: getDefaultSenderAddress(),
             to,
             subject,
             html
