@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">
               <div className="bg-[#e74c3c] p-2 rounded-lg">
@@ -49,15 +49,24 @@ export function Footer() {
           </div>
 
           <div>
+            <h3 className="font-semibold text-lg mb-4">Legale</h3>
+            <ul className="space-y-2">
+              <li><Link to="/privacy" className="text-gray-400 hover:text-white text-sm">Privacy Policy</Link></li>
+              <li><Link to="/termini" className="text-gray-400 hover:text-white text-sm">Termini di servizio</Link></li>
+              <li><Link to="/cookie" className="text-gray-400 hover:text-white text-sm">Cookie Policy</Link></li>
+            </ul>
+          </div>
+
+          <div>
             <h3 className="font-semibold text-lg mb-4">Contatti</h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-[#e74c3c] flex-shrink-0" />
-                <span className="text-gray-400 text-sm">Via dell'Immobiliare 123, 50100 Firenze</span>
+                <span className="text-gray-400 text-sm">Modena, Italia</span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-[#e74c3c] flex-shrink-0" />
-                <span className="text-gray-400 text-sm">+39 055 1234567</span>
+                <span className="text-gray-400 text-sm">Da configurare</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-[#e74c3c] flex-shrink-0" />

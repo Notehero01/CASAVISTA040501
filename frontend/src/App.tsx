@@ -22,6 +22,9 @@ import { ReimpostaPasswordPage } from '@/pages/ReimpostaPasswordPage';
 import { AmministrazioniPage } from '@/pages/AmministrazioniPage';
 import { PreferitiPage } from '@/pages/PreferitiPage';
 import { ConfrontoPage } from '@/pages/ConfrontoPage';
+import { PrivacyPage, TerminiPage, CookiePage } from '@/pages/LegalPages';
+import { AdminPage } from '@/pages/AdminPage';
+import { MessaggiPage } from '@/pages/MessaggiPage';
 import type { Annuncio } from '@/types/annuncio';
 
 function App() {
@@ -76,6 +79,23 @@ function App() {
             <Route path="/amministrazioni" element={<AmministrazioniPage />} />
             <Route path="/preferiti" element={<PreferitiPage />} />
             <Route path="/confronto" element={<ConfrontoPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/termini" element={<TerminiPage />} />
+            <Route path="/cookie" element={<CookiePage />} />
+            <Route
+              path="/messaggi"
+              element={
+                <MessaggiPage
+                  currentUser={user}
+                  conversations={conversations}
+                  getMessages={getMessages}
+                  sendMessage={sendMessage}
+                  markAsRead={markAsRead}
+                  deleteConversation={deleteConversation}
+                />
+              }
+            />
+            <Route path="/admin" element={isAdmin ? <AdminPage /> : <LoginPage onLogin={login} />} />
           </Routes>
         </main>
         <Footer />

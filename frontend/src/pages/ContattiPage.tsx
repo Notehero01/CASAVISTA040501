@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,8 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 export function ContattiPage() {
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!privacyConsent) {
+      toast.error('Accetta la Privacy Policy per inviare il messaggio.');
+      return;
+    }
     toast.success('Messaggio inviato! Ti risponderemo presto.');
   };
 
@@ -74,6 +82,18 @@ export function ContattiPage() {
                   <Label>Messaggio *</Label>
                   <Textarea className="min-h-[150px]" required />
                 </div>
+                <label className="flex items-start gap-3 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={privacyConsent}
+                    onChange={(e) => setPrivacyConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300"
+                    required
+                  />
+                  <span>
+                    Ho letto la <Link to="/privacy" className="text-[#e74c3c] font-medium">Privacy Policy</Link> e autorizzo il trattamento dei dati per ricevere risposta.
+                  </span>
+                </label>
                 <Button type="submit" className="bg-[#e74c3c]">
                   <Send className="h-4 w-4 mr-2" />Invia messaggio
                 </Button>

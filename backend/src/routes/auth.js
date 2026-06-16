@@ -29,7 +29,7 @@ function createPasswordResetToken() {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, nome, cognome, telefono, tipo = 'utente' } = req.body;
+    const { email, password, nome, cognome, telefono, tipo = 'utente', privacyConsent } = req.body;
 
     // Validazione
     if (!email || !password || !nome || !cognome) {
@@ -38,6 +38,10 @@ router.post('/register', async (req, res) => {
 
     if (password.length < 6) {
       return res.status(400).json({ message: 'La password deve essere di almeno 6 caratteri.' });
+    }
+
+    if (!privacyConsent) {
+      return res.status(400).json({ message: 'Devi accettare Privacy Policy e Termini per registrarti.' });
     }
 
     const users = await readData('users');
@@ -59,6 +63,9 @@ router.post('/register', async (req, res) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       verified: false,
+      blocked: false,
+      privacyConsentAt: new Date().toISOString(),
+      privacyConsentVersion: '2026-06-16',
       avatar: null
     };
 
@@ -109,6 +116,10 @@ router.post('/login', async (req, res) => {
 
     if (!user) {
       return res.status(401).json({ message: 'Credenziali non valide.' });
+    }
+
+    if (user.blocked) {
+      return res.status(403).json({ message: 'Account bloccato. Contatta CasaVista.' });
     }
 
     const isValid = verifyPassword(password, user.password);

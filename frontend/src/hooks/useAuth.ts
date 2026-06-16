@@ -8,6 +8,8 @@ export interface User {
   cognome: string;
   telefono?: string;
   tipo: 'utente' | 'admin' | 'amministrazione';
+  verified?: boolean;
+  blocked?: boolean;
 }
 
 interface AuthState {
@@ -70,6 +72,7 @@ export function useAuth() {
     cognome: string;
     telefono?: string;
     tipo?: 'utente' | 'amministrazione';
+    privacyConsent?: boolean;
   }): Promise<{ success: boolean; message: string }> => {
     try {
       const data = await authApi.register(userData);

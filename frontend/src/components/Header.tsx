@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Building2, Menu, X, Plus, Search, Home, Phone, Calculator, 
   BarChart3, Building, LogIn, User as UserIcon, MessageCircle, LogOut,
-  Heart, Scale
+  Heart, Scale, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -145,6 +145,17 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                       <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
                     <DropdownMenuSeparator />
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuItem asChild className="cursor-pointer">
+                          <Link to="/admin">
+                            <ShieldCheck className="h-4 w-4 mr-2" />
+                            Admin
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-red-600">
                       <LogOut className="h-4 w-4 mr-2" />
                       Esci

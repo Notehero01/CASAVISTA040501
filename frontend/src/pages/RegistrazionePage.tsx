@@ -17,7 +17,7 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [tipo, setTipo] = useState<'utente' | 'amministrazione'>('utente');
   const [formData, setFormData] = useState({
-    nome: '', cognome: '', email: '', telefono: '', password: '', confermaPassword: ''
+    nome: '', cognome: '', email: '', telefono: '', password: '', confermaPassword: '', privacyConsent: false
   });
   const [loading, setLoading] = useState(false);
 
@@ -25,6 +25,10 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
     e.preventDefault();
     if (formData.password !== formData.confermaPassword) {
       toast.error('Le password non coincidono');
+      return;
+    }
+    if (!formData.privacyConsent) {
+      toast.error('Devi accettare Privacy Policy e Termini di servizio');
       return;
     }
     setLoading(true);
@@ -99,6 +103,18 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
                 <Label>Conferma Password *</Label>
                 <Input type="password" value={formData.confermaPassword} onChange={(e) => setFormData({ ...formData, confermaPassword: e.target.value })} required />
               </div>
+              <label className="flex items-start gap-3 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={formData.privacyConsent}
+                  onChange={(e) => setFormData({ ...formData, privacyConsent: e.target.checked })}
+                  className="mt-1 h-4 w-4 rounded border-gray-300"
+                  required
+                />
+                <span>
+                  Accetto la <Link to="/privacy" className="text-[#e74c3c] font-medium">Privacy Policy</Link> e i <Link to="/termini" className="text-[#e74c3c] font-medium">Termini di servizio</Link>.
+                </span>
+              </label>
               <Button type="submit" className="w-full bg-[#e74c3c] hover:bg-[#c0392b]" disabled={loading}>
                 {loading ? 'Registrazione...' : 'Registrati gratis'}
               </Button>

@@ -26,6 +26,38 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+function isPublicAnnuncio(annuncio) {
+  return !annuncio.deletedAt && !['hidden', 'deleted'].includes(annuncio.moderationStatus);
+}
+
+// Get featured annunci
+router.get('/featured/list', async (req, res) => {
+  try {
+    const annunci = await readData('annunci');
+    const featured = annunci
+      .filter(isPublicAnnuncio)
+      .sort((a, b) => (b.visualizzazioni || 0) - (a.visualizzazioni || 0))
+      .slice(0, 6);
+    res.json(featured);
+  } catch (error) {
+    res.status(500).json({ message: 'Errore del server.' });
+  }
+});
+
+// Get recent annunci
+router.get('/recent/list', async (req, res) => {
+  try {
+    const annunci = await readData('annunci');
+    const recent = annunci
+      .filter(isPublicAnnuncio)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 6);
+    res.json(recent);
+  } catch (error) {
+    res.status(500).json({ message: 'Errore del server.' });
+  }
+});
+
 // Get all annunci (con filtri avanzati)
 router.get('/', async (req, res) => {
   try {
@@ -53,7 +85,7 @@ router.get('/', async (req, res) => {
       limit = 20
     } = req.query;
 
-    let annunci = await readData('annunci');
+    let annunci = (await readData('annunci')).filter(isPublicAnnuncio);
 
     // Applica filtri base
     if (tipo) annunci = annunci.filter(a => a.tipo === tipo);
@@ -122,7 +154,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     
     // Cerca per ID o slug
-    const annuncio = annunci.find(a => a.id === id || a.slug === id);
+    const annuncio = annunci.find(a => (a.id === id || a.slug === id) && isPublicAnnuncio(a));
 
     if (!annuncio) {
       return res.status(404).json({ message: 'Annuncio non trovato.' });
@@ -141,7 +173,7 @@ router.post('/:id/views', async (req, res) => {
     const annunci = await readData('annunci');
     const { id } = req.params;
     
-    const annuncio = annunci.find(a => a.id === id || a.slug === id);
+    const annuncio = annunci.find(a => (a.id === id || a.slug === id) && isPublicAnnuncio(a));
     if (!annuncio) {
       return res.status(404).json({ message: 'Annuncio non trovato.' });
     }
@@ -221,6 +253,7 @@ router.post('/', auth, async (req, res) => {
       telefono_contatto: telefono_contatto || req.user.telefono,
       email_contatto: email_contatto || req.user.email,
       userId: req.user.id,
+      moderationStatus: 'published',
       visualizzazioni: 0,
       contattiRicevuti: 0,
       createdAt: new Date().toISOString(),
@@ -294,32 +327,6 @@ router.delete('/:id', auth, async (req, res) => {
     res.json({ message: 'Annuncio eliminato.' });
   } catch (error) {
     console.error('Delete annuncio error:', error);
-    res.status(500).json({ message: 'Errore del server.' });
-  }
-});
-
-// Get featured annunci
-router.get('/featured/list', async (req, res) => {
-  try {
-    const annunci = await readData('annunci');
-    const featured = annunci
-      .sort((a, b) => (b.visualizzazioni || 0) - (a.visualizzazioni || 0))
-      .slice(0, 6);
-    res.json(featured);
-  } catch (error) {
-    res.status(500).json({ message: 'Errore del server.' });
-  }
-});
-
-// Get recent annunci
-router.get('/recent/list', async (req, res) => {
-  try {
-    const annunci = await readData('annunci');
-    const recent = annunci
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 6);
-    res.json(recent);
-  } catch (error) {
     res.status(500).json({ message: 'Errore del server.' });
   }
 });

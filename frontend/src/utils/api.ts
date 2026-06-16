@@ -173,3 +173,32 @@ export const uploadApi = {
     return response.json();
   }
 };
+
+// Admin API
+export const adminApi = {
+  getSummary: () => api<any>('/admin/summary'),
+
+  getUsers: () => api<any[]>('/admin/users'),
+
+  setUserBlocked: (id: string, blocked: boolean) =>
+    api<any>(`/admin/users/${id}/block`, {
+      method: 'PUT',
+      body: { blocked }
+    }),
+
+  setUserVerified: (id: string, verified: boolean) =>
+    api<any>(`/admin/users/${id}/verify`, {
+      method: 'PUT',
+      body: { verified }
+    }),
+
+  getAnnunci: () => api<any[]>('/admin/annunci'),
+
+  setAnnuncioStatus: (id: string, status: 'published' | 'hidden') =>
+    api<any>(`/admin/annunci/${id}/status`, {
+      method: 'PUT',
+      body: { status }
+    }),
+
+  deleteAnnuncio: (id: string) => api<any>(`/admin/annunci/${id}`, { method: 'DELETE' })
+};

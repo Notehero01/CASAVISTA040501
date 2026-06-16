@@ -20,6 +20,10 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Utente non trovato.' });
     }
 
+    if (user.blocked) {
+      return res.status(403).json({ message: 'Account bloccato. Contatta CasaVista.' });
+    }
+
     req.user = {
       id: user.id,
       email: user.email,
