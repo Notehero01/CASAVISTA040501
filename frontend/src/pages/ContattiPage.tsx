@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, Mail, MapPin, Send } from 'lucide-react';
+import { Mail, MapPin, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,15 +31,6 @@ export function ContattiPage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm p-6 space-y-6">
               <div className="flex items-start gap-4">
-                <div className="bg-[#e74c3c]/10 p-3 rounded-lg">
-                  <Phone className="h-6 w-6 text-[#e74c3c]" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Telefono</h3>
-                  <p className="text-gray-600">+39 055 1234567</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
                 <div className="bg-blue-100 p-3 rounded-lg">
                   <Mail className="h-6 w-6 text-blue-600" />
                 </div>
@@ -53,8 +44,8 @@ export function ContattiPage() {
                   <MapPin className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Indirizzo</h3>
-                  <p className="text-gray-600">Via dell'Immobiliare 123<br />50100 Firenze (FI)</p>
+                  <h3 className="font-semibold">Zona di partenza</h3>
+                  <p className="text-gray-600">Modena e provincia</p>
                 </div>
               </div>
             </div>

@@ -74,7 +74,7 @@ export function ChatWidget({
   if (!currentUser) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
       {!isOpen && (
         <Button onClick={() => setIsOpen(true)} className="w-14 h-14 rounded-full bg-[#e74c3c] hover:bg-[#c0392b] shadow-lg relative">
           <MessageCircle className="h-6 w-6" />
@@ -87,7 +87,7 @@ export function ChatWidget({
       )}
 
       {isOpen && (
-        <div className="bg-white rounded-2xl shadow-2xl w-[380px] h-[500px] flex flex-col overflow-hidden border border-gray-200">
+        <div className="flex h-[min(520px,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-[380px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
           <div className="bg-[#e74c3c] text-white p-4 flex items-center justify-between">
             {!activeConversation ? (
               <>
@@ -102,7 +102,7 @@ export function ChatWidget({
               <>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setActiveConversation(null)}><ChevronLeft className="h-5 w-5" /></button>
-                  <span className="font-medium">
+                  <span className="truncate font-medium">
                     {activeConv?.participantNames[activeConv.participants.find(p => p !== currentUser.id) || '']}
                   </span>
                 </div>
@@ -130,7 +130,7 @@ export function ChatWidget({
                       <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                         <UserIcon className="h-5 w-5 text-gray-500" />
                       </div>
-                      <div className="flex-1 text-left">
+                      <div className="min-w-0 flex-1 text-left">
                         <p className="font-medium text-sm">{otherName}</p>
                         <p className="text-xs text-gray-500 truncate">{conv.lastMessage?.content || 'Nessun messaggio'}</p>
                       </div>

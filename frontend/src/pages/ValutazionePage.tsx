@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { CATEGORIE, STATI_IMMOBILE } from '@/types/annuncio';
 
 const PREZZI_MEDIO: Record<string, Record<string, number>> = {
+  'Modena': { appartamento: 2600, casa: 2400, villa: 3400, ufficio: 2100, negozio: 2700, terreno: 450 },
   'Firenze': { appartamento: 4200, casa: 3800, villa: 5500, ufficio: 3200, negozio: 4500, terreno: 800 },
   'Milano': { appartamento: 5800, casa: 5200, villa: 7500, ufficio: 4800, negozio: 6200, terreno: 1200 },
   'Roma': { appartamento: 5100, casa: 4600, villa: 6800, ufficio: 4200, negozio: 5500, terreno: 1000 },
@@ -69,7 +70,7 @@ export function ValutazionePage() {
                 <Label>Città *</Label>
                 <div className="relative mt-2">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input value={citta} onChange={(e) => setCitta(e.target.value)} className="pl-10" placeholder="Es: Firenze" />
+                  <Input value={citta} onChange={(e) => setCitta(e.target.value)} className="pl-10" placeholder="Es: Modena" />
                 </div>
               </div>
 

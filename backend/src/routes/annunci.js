@@ -90,7 +90,7 @@ router.get('/', async (req, res) => {
     // Applica filtri base
     if (tipo) annunci = annunci.filter(a => a.tipo === tipo);
     if (categoria) annunci = annunci.filter(a => a.categoria === categoria);
-    if (citta) annunci = annunci.filter(a => a.citta.toLowerCase().includes(citta.toLowerCase()));
+    if (citta) annunci = annunci.filter(a => (a.citta || '').toLowerCase().includes(citta.toLowerCase()));
     if (prezzoMin) annunci = annunci.filter(a => a.prezzo >= parseInt(prezzoMin));
     if (prezzoMax) annunci = annunci.filter(a => a.prezzo <= parseInt(prezzoMax));
     if (superficieMin) annunci = annunci.filter(a => a.superficie >= parseInt(superficieMin));

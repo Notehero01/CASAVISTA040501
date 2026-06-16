@@ -196,7 +196,7 @@ async function initAdmin() {
       nome: 'Amministratore',
       cognome: 'CasaVista',
       tipo: 'admin',
-      telefono: '+39 055 1234567',
+      telefono: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       verified: true

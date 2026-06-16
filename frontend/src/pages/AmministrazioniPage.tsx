@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building, MapPin, Phone, Mail, Star, Search, CheckCircle } from 'lucide-react';
+import { Building, CheckCircle, Mail, MapPin, Phone, Search, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { amministrazioniApi } from '@/utils/api';
 import { toast } from 'sonner';
 
 const SERVIZI = [
   'Amministrazione condominiale',
-  'Contabilità',
+  'Contabilita',
   'Manutenzione ordinaria',
   'Manutenzione straordinaria',
   'Consulenza legale',
@@ -25,43 +26,26 @@ interface Amministrazione {
   rating?: number;
   recensioni?: number;
   servizi?: string[];
+  verified?: boolean;
+  ragioneSociale?: string;
 }
 
 export function AmministrazioniPage() {
   const [amministrazioni, setAmministrazioni] = useState<Amministrazione[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filtroServizi, setFiltroServizi] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulazione dati - in produzione verrebbero dall'API
-    setAmministrazioni([
-      {
-        id: '1',
-        nome: 'Studio',
-        cognome: 'Rossi Amministrazioni',
-        email: 'rossi@example.com',
-        telefono: '+39 333 1234567',
-        citta: 'Firenze',
-        rating: 4.5,
-        recensioni: 23,
-        servizi: ['Amministrazione condominiale', 'Contabilità']
-      },
-      {
-        id: '2',
-        nome: 'Amministrazione',
-        cognome: 'Bianchi',
-        email: 'bianchi@example.com',
-        telefono: '+39 338 7654321',
-        citta: 'Milano',
-        rating: 4.8,
-        recensioni: 45,
-        servizi: ['Amministrazione condominiale', 'Manutenzione ordinaria']
-      }
-    ]);
+    amministrazioniApi.getAll()
+      .then(setAmministrazioni)
+      .catch(() => toast.error('Impossibile caricare le amministrazioni.'))
+      .finally(() => setLoading(false));
   }, []);
 
-  const filtered = amministrazioni.filter(a => {
-    const matchSearch = !searchQuery || a.nome.toLowerCase().includes(searchQuery.toLowerCase()) || a.citta?.toLowerCase().includes(searchQuery.toLowerCase());
+  const filtered = amministrazioni.filter((a) => {
+    const haystack = `${a.nome} ${a.cognome} ${a.ragioneSociale || ''} ${a.citta || ''}`.toLowerCase();
+    const matchSearch = !searchQuery || haystack.includes(searchQuery.toLowerCase());
     const matchServizi = filtroServizi.length === 0 || filtroServizi.every(s => a.servizi?.includes(s));
     return matchSearch && matchServizi;
   });
@@ -71,15 +55,15 @@ export function AmministrazioniPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gray-50 py-10 md:py-12">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
+        <div className="text-center mb-10 md:mb-12">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#e74c3c]/10 rounded-full mb-4">
             <Building className="h-8 w-8 text-[#e74c3c]" />
           </div>
-          <h1 className="text-4xl font-bold mb-4">Amministrazioni Condominiali</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Amministrazioni Condominiali</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Trova e confronta le migliori amministrazioni della tua zona
+            Trova e confronta le amministrazioni registrate su CasaVista.
           </p>
           <div className="mt-6">
             <Link to="/registrazione">
@@ -90,14 +74,14 @@ export function AmministrazioniPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+        <div className="bg-white rounded-lg border shadow-sm p-4 md:p-6 mb-8">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input 
-              placeholder="Cerca amministrazione o città..." 
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
-              className="pl-10" 
+            <Input
+              placeholder="Cerca amministrazione o citta"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
             />
           </div>
           <p className="text-sm text-gray-500 mb-2">Filtra per servizi:</p>
@@ -115,41 +99,73 @@ export function AmministrazioniPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filtered.map((amm) => (
+          {loading && (
+            <Card className="lg:col-span-2">
+              <CardContent className="p-8 text-center text-gray-500">
+                Caricamento amministrazioni...
+              </CardContent>
+            </Card>
+          )}
+
+          {!loading && filtered.length === 0 && (
+            <Card className="lg:col-span-2">
+              <CardContent className="p-8 text-center">
+                <Building className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+                <h2 className="text-lg font-semibold text-gray-900">Nessuna amministrazione trovata</h2>
+                <p className="mt-2 text-gray-500">
+                  Le agenzie e le amministrazioni registrate compariranno qui dopo la verifica.
+                </p>
+                <Link to="/registrazione">
+                  <Button className="mt-5 bg-[#e74c3c]">Registra la tua amministrazione</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {!loading && filtered.map((amm) => (
             <Card key={amm.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-[#e74c3c] to-[#c0392b] rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Building className="h-8 w-8 text-white" />
+              <CardContent className="p-5 md:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-[#e74c3c] to-[#c0392b] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Building className="h-7 w-7 md:h-8 md:w-8 text-white" />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold">{amm.nome} {amm.cognome}</h3>
-                        <div className="flex items-center gap-1 mt-1">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-semibold break-words">
+                          {amm.ragioneSociale || `${amm.nome} ${amm.cognome}`}
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-1 mt-1">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star key={star} className={`h-4 w-4 ${star <= Math.round(amm.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
                           ))}
-                          <span className="text-sm text-gray-600 ml-1">{amm.rating} ({amm.recensioni} recensioni)</span>
+                          <span className="text-sm text-gray-600 ml-1">
+                            {amm.rating || 0} ({amm.recensioni || 0} recensioni)
+                          </span>
                         </div>
                       </div>
-                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
-                        <CheckCircle className="h-3 w-3" />Verificata
-                      </span>
+                      {amm.verified && (
+                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
+                          <CheckCircle className="h-3 w-3" />Verificata
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      {amm.servizi?.slice(0, 3).map((s, i) => (
-                        <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">{s}</span>
-                      ))}
-                    </div>
+                    {Boolean(amm.servizi?.length) && (
+                      <div className="flex flex-wrap gap-1 mt-3">
+                        {amm.servizi?.slice(0, 3).map((s, i) => (
+                          <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">{s}</span>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="flex flex-wrap gap-4 mt-4 text-sm text-gray-500">
                       {amm.citta && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{amm.citta}</span>}
                       {amm.telefono && <span className="flex items-center gap-1"><Phone className="h-4 w-4" />{amm.telefono}</span>}
+                      {amm.email && <span className="flex items-center gap-1 break-all"><Mail className="h-4 w-4" />{amm.email}</span>}
                     </div>
 
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex flex-col gap-2 mt-4 sm:flex-row">
                       <Button variant="outline" className="flex-1">Dettagli</Button>
                       <Button className="flex-1 bg-[#e74c3c]">Contatta</Button>
                     </div>

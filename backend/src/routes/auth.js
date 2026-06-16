@@ -47,7 +47,7 @@ router.post('/register', async (req, res) => {
     const users = await readData('users');
 
     // Verifica email esistente
-    if (users.find(u => u.email === email)) {
+    if (users.find(u => u.email === email.toLowerCase())) {
       return res.status(400).json({ message: 'Email già registrata.' });
     }
 

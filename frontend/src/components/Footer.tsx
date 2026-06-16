@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Building2, Mail, Phone, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
+import { Building2, Mail, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -63,10 +63,6 @@ export function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-[#e74c3c] flex-shrink-0" />
                 <span className="text-gray-400 text-sm">Modena, Italia</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone className="h-5 w-5 text-[#e74c3c] flex-shrink-0" />
-                <span className="text-gray-400 text-sm">Da configurare</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-[#e74c3c] flex-shrink-0" />

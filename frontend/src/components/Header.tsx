@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Building2, Menu, X, Plus, Search, Home, Phone, Calculator, 
   BarChart3, Building, LogIn, User as UserIcon, MessageCircle, LogOut,
-  Heart, Scale, ShieldCheck
+  Heart, Scale, ShieldCheck, Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -179,11 +179,11 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                     <div className="space-y-4 py-4">
                       <div className="flex items-center gap-3">
                         <div className="bg-[#e74c3c]/10 p-3 rounded-full">
-                          <Phone className="h-5 w-5 text-[#e74c3c]" />
+                          <Mail className="h-5 w-5 text-[#e74c3c]" />
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500">Telefono</p>
-                          <p className="font-medium">+39 055 1234567</p>
+                          <p className="text-sm text-gray-500">Email</p>
+                          <p className="font-medium">info@casavista.it</p>
                         </div>
                       </div>
                     </div>
@@ -239,6 +239,51 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                   <Link to="/registrazione" onClick={() => setMobileMenuOpen(false)}>
                     <Button className="w-full bg-[#e74c3c]">Registrati gratis</Button>
                   </Link>
+                </div>
+              )}
+              {isAuthenticated && (
+                <div className="pt-4 border-t border-gray-200 mt-2 space-y-2">
+                  <div className="px-4 pb-2 text-sm text-gray-600">
+                    <p className="font-medium text-gray-900">{user?.nome} {user?.cognome}</p>
+                    <p className="truncate">{user?.email}</p>
+                  </div>
+                  <Link to="/preferiti" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Heart className="h-4 w-4 mr-2" />
+                      Preferiti {preferitiCount > 0 ? `(${preferitiCount})` : ''}
+                    </Button>
+                  </Link>
+                  <Link to="/confronto" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Scale className="h-4 w-4 mr-2" />
+                      Confronto {confrontoCount > 0 ? `(${confrontoCount}/${maxConfronto})` : ''}
+                    </Button>
+                  </Link>
+                  <Link to="/messaggi" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Messaggi {unreadMessages > 0 ? `(${unreadMessages > 9 ? '9+' : unreadMessages})` : ''}
+                    </Button>
+                  </Link>
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full justify-start">
+                        <ShieldCheck className="h-4 w-4 mr-2" />
+                        Admin
+                      </Button>
+                    </Link>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-red-600"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onLogout();
+                    }}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Esci
+                  </Button>
                 </div>
               )}
             </nav>
