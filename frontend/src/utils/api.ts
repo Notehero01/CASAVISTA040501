@@ -73,6 +73,8 @@ export const authApi = {
     }),
   
   me: () => api<{ user: any }>('/auth/me'),
+
+  getPublicUser: (id: string) => api<any>(`/auth/user/${id}`, { auth: false }),
   
   updateProfile: (data: any) => 
     api<{ user: any }>('/auth/profile', { method: 'PUT', body: data })

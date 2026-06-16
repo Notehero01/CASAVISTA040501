@@ -61,7 +61,7 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
             <Tabs value={tipo} onValueChange={(v) => setTipo(v as 'utente' | 'amministrazione')}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="utente">Utente</TabsTrigger>
-                <TabsTrigger value="amministrazione">Amministrazione</TabsTrigger>
+                <TabsTrigger value="amministrazione">Agenzia</TabsTrigger>
               </TabsList>
             </Tabs>
             <form onSubmit={handleSubmit} className="space-y-4">

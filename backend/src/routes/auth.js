@@ -5,6 +5,7 @@ const router = express.Router();
 const { readData, writeData, generateId } = require('../utils/db');
 const { hashPassword, verifyPassword } = require('../utils/crypto');
 const { sendEmail } = require('../utils/email');
+const { buildAgencyProfile } = require('../utils/agency');
 
 function getClientOrigin() {
   const origin = (process.env.CLIENT_ORIGIN || 'https://casavista.it')
@@ -243,15 +244,30 @@ router.get('/user/:id', async (req, res) => {
       return res.status(404).json({ message: 'Utente non trovato.' });
     }
     
-    // Ritorna solo info pubbliche
-    res.json({
+    const publicUser = {
       id: user.id,
       nome: user.nome,
       cognome: user.cognome,
       isVerified: user.verified || false,
       isAgency: user.tipo === 'amministrazione',
       createdAt: user.createdAt
-    });
+    };
+
+    if (user.tipo === 'amministrazione') {
+      const amministrazioniData = await readData('amministrazioni');
+      const annunci = await readData('annunci');
+      const details = amministrazioniData.find(a => a.userId === user.id);
+      const agency = buildAgencyProfile(user, details, annunci);
+
+      publicUser.slug = agency.slug;
+      publicUser.displayName = agency.displayName;
+      publicUser.ragioneSociale = agency.ragioneSociale;
+      publicUser.logo = agency.logo;
+      publicUser.annunciCount = agency.annunciCount;
+    }
+
+    // Ritorna solo info pubbliche
+    res.json(publicUser);
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ message: 'Errore del server.' });

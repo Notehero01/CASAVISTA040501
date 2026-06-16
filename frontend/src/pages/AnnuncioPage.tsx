@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Bed, Bath, Maximize, User, Phone, Mail, ArrowLeft, Heart, Check, Eye, MessageCircle, Scale, Share2, BadgeCheck } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize, User, Phone, Mail, ArrowLeft, Heart, Check, Eye, MessageCircle, Scale, Share2, BadgeCheck, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { annunciApi } from '@/utils/api';
+import { annunciApi, authApi } from '@/utils/api';
 import { usePreferiti } from '@/hooks/usePreferiti';
 import { useConfronto } from '@/hooks/useConfronto';
 import { MapView } from '@/components/MapView';
@@ -24,7 +24,14 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   const [annuncio, setAnnuncio] = useState<Annuncio | null>(null);
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
-  const [userInfo, setUserInfo] = useState<{ isVerified?: boolean; isAgency?: boolean } | null>(null);
+  const [userInfo, setUserInfo] = useState<{
+    isVerified?: boolean;
+    isAgency?: boolean;
+    slug?: string;
+    displayName?: string;
+    ragioneSociale?: string;
+    annunciCount?: number;
+  } | null>(null);
   const { isPreferito, togglePreferito } = usePreferiti();
   const { isNelConfronto, toggleConfronto, canAddMore } = useConfronto();
 
@@ -37,9 +44,8 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
         setAnnuncio(data);
         // Carica info utente per badge verificato
         if (data.userId) {
-          fetch(`/api/auth/user/${data.userId}`)
-            .then(r => r.json())
-            .then(u => setUserInfo(u))
+          authApi.getPublicUser(data.userId)
+            .then(setUserInfo)
             .catch(() => {});
         }
         setLoading(false);
@@ -251,6 +257,24 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
                     </p>
                   </div>
                 </div>
+              )}
+
+              {userInfo?.isAgency && (
+                <Link
+                  to={`/agenzia/${userInfo.slug || annuncio.userId}`}
+                  className="mb-4 flex items-center gap-3 rounded-lg border bg-gray-50 p-3 transition-colors hover:bg-gray-100"
+                >
+                  <div className="rounded-full bg-[#e74c3c]/10 p-3">
+                    <Building2 className="h-5 w-5 text-[#e74c3c]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-500">Pagina agenzia</p>
+                    <p className="truncate font-medium">
+                      {userInfo.displayName || userInfo.ragioneSociale || annuncio.nome_contatto}
+                    </p>
+                    <p className="text-xs text-gray-500">{userInfo.annunciCount || 0} annunci pubblicati</p>
+                  </div>
+                </Link>
               )}
               
               <div className="space-y-4 mb-6">

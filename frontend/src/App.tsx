@@ -20,6 +20,8 @@ import { RegistrazionePage } from '@/pages/RegistrazionePage';
 import { PasswordDimenticataPage } from '@/pages/PasswordDimenticataPage';
 import { ReimpostaPasswordPage } from '@/pages/ReimpostaPasswordPage';
 import { AmministrazioniPage } from '@/pages/AmministrazioniPage';
+import { AgenziaPage } from '@/pages/AgenziaPage';
+import { ProfiloAgenziaPage } from '@/pages/ProfiloAgenziaPage';
 import { PreferitiPage } from '@/pages/PreferitiPage';
 import { ConfrontoPage } from '@/pages/ConfrontoPage';
 import { PrivacyPage, TerminiPage, CookiePage } from '@/pages/LegalPages';
@@ -77,6 +79,8 @@ function App() {
             <Route path="/reimposta-password/:token" element={<ReimpostaPasswordPage />} />
             <Route path="/registrazione" element={<RegistrazionePage onRegister={register} />} />
             <Route path="/amministrazioni" element={<AmministrazioniPage />} />
+            <Route path="/agenzia/:slug" element={<AgenziaPage />} />
+            <Route path="/profilo-agenzia" element={isAuthenticated ? <ProfiloAgenziaPage user={user} /> : <LoginPage onLogin={login} />} />
             <Route path="/preferiti" element={<PreferitiPage />} />
             <Route path="/confronto" element={<ConfrontoPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />

@@ -18,8 +18,10 @@ const SERVIZI = [
 
 interface Amministrazione {
   id: string;
+  slug?: string;
   nome: string;
   cognome: string;
+  displayName?: string;
   email: string;
   telefono?: string;
   citta?: string;
@@ -28,6 +30,8 @@ interface Amministrazione {
   servizi?: string[];
   verified?: boolean;
   ragioneSociale?: string;
+  logo?: string;
+  annunciCount?: number;
 }
 
 export function AmministrazioniPage() {
@@ -61,9 +65,9 @@ export function AmministrazioniPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#e74c3c]/10 rounded-full mb-4">
             <Building className="h-8 w-8 text-[#e74c3c]" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Amministrazioni Condominiali</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Agenzie e Amministrazioni</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Trova e confronta le amministrazioni registrate su CasaVista.
+            Trova agenzie immobiliari e amministrazioni registrate su CasaVista.
           </p>
           <div className="mt-6">
             <Link to="/registrazione">
@@ -112,9 +116,7 @@ export function AmministrazioniPage() {
               <CardContent className="p-8 text-center">
                 <Building className="mx-auto mb-3 h-10 w-10 text-gray-300" />
                 <h2 className="text-lg font-semibold text-gray-900">Nessuna amministrazione trovata</h2>
-                <p className="mt-2 text-gray-500">
-                  Le agenzie e le amministrazioni registrate compariranno qui dopo la verifica.
-                </p>
+                <p className="mt-2 text-gray-500">Le agenzie registrate compariranno qui appena completano il profilo.</p>
                 <Link to="/registrazione">
                   <Button className="mt-5 bg-[#e74c3c]">Registra la tua amministrazione</Button>
                 </Link>
@@ -126,14 +128,18 @@ export function AmministrazioniPage() {
             <Card key={amm.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-5 md:p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                  <div className="w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-[#e74c3c] to-[#c0392b] rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Building className="h-7 w-7 md:h-8 md:w-8 text-white" />
+                  <div className="w-14 h-14 md:w-16 md:h-16 bg-[#e74c3c]/10 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {amm.logo ? (
+                      <img src={amm.logo} alt={amm.displayName || amm.ragioneSociale || amm.nome} className="h-full w-full object-cover" />
+                    ) : (
+                      <Building className="h-7 w-7 md:h-8 md:w-8 text-[#e74c3c]" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <h3 className="text-lg font-semibold break-words">
-                          {amm.ragioneSociale || `${amm.nome} ${amm.cognome}`}
+                          {amm.displayName || amm.ragioneSociale || `${amm.nome} ${amm.cognome}`}
                         </h3>
                         <div className="flex flex-wrap items-center gap-1 mt-1">
                           {[1, 2, 3, 4, 5].map((star) => (
@@ -161,13 +167,18 @@ export function AmministrazioniPage() {
 
                     <div className="flex flex-wrap gap-4 mt-4 text-sm text-gray-500">
                       {amm.citta && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{amm.citta}</span>}
+                      <span className="flex items-center gap-1"><Building className="h-4 w-4" />{amm.annunciCount || 0} annunci</span>
                       {amm.telefono && <span className="flex items-center gap-1"><Phone className="h-4 w-4" />{amm.telefono}</span>}
                       {amm.email && <span className="flex items-center gap-1 break-all"><Mail className="h-4 w-4" />{amm.email}</span>}
                     </div>
 
                     <div className="flex flex-col gap-2 mt-4 sm:flex-row">
-                      <Button variant="outline" className="flex-1">Dettagli</Button>
-                      <Button className="flex-1 bg-[#e74c3c]">Contatta</Button>
+                      <Button variant="outline" className="flex-1" asChild>
+                        <Link to={`/agenzia/${amm.slug || amm.id}`}>Dettagli</Link>
+                      </Button>
+                      <Button className="flex-1 bg-[#e74c3c]" asChild>
+                        <a href={`mailto:${amm.email}`}>Contatta</a>
+                      </Button>
                     </div>
                   </div>
                 </div>

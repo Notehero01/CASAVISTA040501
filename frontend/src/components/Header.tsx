@@ -145,6 +145,17 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                       <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
                     <DropdownMenuSeparator />
+                    {user?.tipo === 'amministrazione' && (
+                      <>
+                        <DropdownMenuItem asChild className="cursor-pointer">
+                          <Link to="/profilo-agenzia">
+                            <Building2 className="h-4 w-4 mr-2" />
+                            Profilo agenzia
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     {isAdmin && (
                       <>
                         <DropdownMenuItem asChild className="cursor-pointer">
@@ -265,6 +276,14 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                       Messaggi {unreadMessages > 0 ? `(${unreadMessages > 9 ? '9+' : unreadMessages})` : ''}
                     </Button>
                   </Link>
+                  {user?.tipo === 'amministrazione' && (
+                    <Link to="/profilo-agenzia" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Profilo agenzia
+                      </Button>
+                    </Link>
+                  )}
                   {isAdmin && (
                     <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="outline" className="w-full justify-start">

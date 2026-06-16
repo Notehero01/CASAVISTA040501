@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { readData, writeData, generateId } = require('../utils/db');
+const { readData, writeData } = require('../utils/db');
 const { auth, adminOnly } = require('../middleware/auth');
+const {
+  buildAgencyProfile,
+  matchesAgencyIdentifier
+} = require('../utils/agency');
 
 // Get all amministrazioni
 router.get('/', async (req, res) => {
@@ -9,20 +13,13 @@ router.get('/', async (req, res) => {
     const { citta, servizi } = req.query;
     const users = await readData('users');
     const amministrazioniData = await readData('amministrazioni');
+    const annunci = await readData('annunci');
 
     let amministrazioni = users
       .filter(u => u.tipo === 'amministrazione')
       .map(u => {
         const details = amministrazioniData.find(a => a.userId === u.id);
-        return {
-          id: u.id,
-          nome: u.nome,
-          cognome: u.cognome,
-          email: u.email,
-          telefono: u.telefono,
-          createdAt: u.createdAt,
-          ...details
-        };
+        return buildAgencyProfile(u, details, annunci);
       });
 
     // Filtra per città
@@ -52,8 +49,13 @@ router.get('/:id', async (req, res) => {
   try {
     const users = await readData('users');
     const amministrazioniData = await readData('amministrazioni');
+    const annunci = await readData('annunci');
     
-    const user = users.find(u => u.id === req.params.id && u.tipo === 'amministrazione');
+    const user = users.find(u => {
+      if (u.tipo !== 'amministrazione') return false;
+      const details = amministrazioniData.find(a => a.userId === u.id);
+      return matchesAgencyIdentifier(u, details, req.params.id);
+    });
     
     if (!user) {
       return res.status(404).json({ message: 'Amministrazione non trovata.' });
@@ -61,15 +63,7 @@ router.get('/:id', async (req, res) => {
 
     const details = amministrazioniData.find(a => a.userId === user.id);
 
-    res.json({
-      id: user.id,
-      nome: user.nome,
-      cognome: user.cognome,
-      email: user.email,
-      telefono: user.telefono,
-      createdAt: user.createdAt,
-      ...details
-    });
+    res.json(buildAgencyProfile(user, details, annunci, { includeAnnunci: true }));
   } catch (error) {
     console.error('Get amministrazione error:', error);
     res.status(500).json({ message: 'Errore del server.' });
@@ -87,28 +81,47 @@ router.post('/profile', auth, async (req, res) => {
       ragioneSociale,
       descrizione,
       citta,
+      provincia,
       indirizzo,
       sitoWeb,
+      telefono,
+      whatsapp,
+      logo,
+      coverImage,
       servizi,
       annoFondazione,
       condominiGestiti
     } = req.body;
 
     const amministrazioni = await readData('amministrazioni');
+    const users = await readData('users');
     const index = amministrazioni.findIndex(a => a.userId === req.user.id);
+    const userIndex = users.findIndex(u => u.id === req.user.id);
+    const existingProfile = index === -1 ? {} : amministrazioni[index];
+
+    if (userIndex !== -1 && telefono !== undefined) {
+      users[userIndex].telefono = telefono || null;
+      users[userIndex].updatedAt = new Date().toISOString();
+      await writeData('users', users);
+    }
 
     const profileData = {
       userId: req.user.id,
-      ragioneSociale: ragioneSociale || `${req.user.nome} ${req.user.cognome}`,
-      descrizione: descrizione || '',
-      citta: citta || '',
-      indirizzo: indirizzo || '',
-      sitoWeb: sitoWeb || '',
-      servizi: Array.isArray(servizi) ? servizi : [],
-      annoFondazione: annoFondazione ? parseInt(annoFondazione) : null,
-      condominiGestiti: condominiGestiti ? parseInt(condominiGestiti) : 0,
-      rating: 0,
-      recensioni: 0,
+      ragioneSociale: ragioneSociale !== undefined ? ragioneSociale : (existingProfile.ragioneSociale || `${req.user.nome} ${req.user.cognome}`),
+      descrizione: descrizione !== undefined ? descrizione : (existingProfile.descrizione || ''),
+      citta: citta !== undefined ? citta : (existingProfile.citta || ''),
+      provincia: provincia !== undefined ? provincia : (existingProfile.provincia || ''),
+      indirizzo: indirizzo !== undefined ? indirizzo : (existingProfile.indirizzo || ''),
+      sitoWeb: sitoWeb !== undefined ? sitoWeb : (existingProfile.sitoWeb || ''),
+      telefono: telefono !== undefined ? telefono : (existingProfile.telefono || req.user.telefono || ''),
+      whatsapp: whatsapp !== undefined ? whatsapp : (existingProfile.whatsapp || ''),
+      logo: logo !== undefined ? logo : (existingProfile.logo || ''),
+      coverImage: coverImage !== undefined ? coverImage : (existingProfile.coverImage || ''),
+      servizi: Array.isArray(servizi) ? servizi : (Array.isArray(existingProfile.servizi) ? existingProfile.servizi : []),
+      annoFondazione: annoFondazione !== undefined && annoFondazione !== '' ? parseInt(annoFondazione) : (existingProfile.annoFondazione || null),
+      condominiGestiti: condominiGestiti !== undefined && condominiGestiti !== '' ? parseInt(condominiGestiti) : (existingProfile.condominiGestiti || 0),
+      rating: existingProfile.rating || 0,
+      recensioni: existingProfile.recensioni || 0,
       updatedAt: new Date().toISOString()
     };
 
