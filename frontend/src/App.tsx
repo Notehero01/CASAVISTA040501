@@ -22,6 +22,8 @@ import { ReimpostaPasswordPage } from '@/pages/ReimpostaPasswordPage';
 import { AmministrazioniPage } from '@/pages/AmministrazioniPage';
 import { AgenziaPage } from '@/pages/AgenziaPage';
 import { ProfiloAgenziaPage } from '@/pages/ProfiloAgenziaPage';
+import { AccountPage } from '@/pages/AccountPage';
+import { MieiAnnunciPage } from '@/pages/MieiAnnunciPage';
 import { PreferitiPage } from '@/pages/PreferitiPage';
 import { ConfrontoPage } from '@/pages/ConfrontoPage';
 import { PrivacyPage, TerminiPage, CookiePage } from '@/pages/LegalPages';
@@ -30,7 +32,7 @@ import { MessaggiPage } from '@/pages/MessaggiPage';
 import type { Annuncio } from '@/types/annuncio';
 
 function App() {
-  const { user, isAuthenticated, isAdmin, loading, login, register, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, loading, login, register, logout, deleteProfile } = useAuth();
   const { conversations, unreadTotal, getOrCreateConversation, sendMessage, getMessages, markAsRead, deleteConversation } = useChat(user);
   const [openConversationId, setOpenConversationId] = useState<string | null>(null);
 
@@ -81,6 +83,8 @@ function App() {
             <Route path="/amministrazioni" element={<AmministrazioniPage />} />
             <Route path="/agenzia/:slug" element={<AgenziaPage />} />
             <Route path="/profilo-agenzia" element={isAuthenticated ? <ProfiloAgenziaPage user={user} /> : <LoginPage onLogin={login} />} />
+            <Route path="/account" element={isAuthenticated ? <AccountPage user={user} onDeleteProfile={deleteProfile} /> : <LoginPage onLogin={login} />} />
+            <Route path="/miei-annunci" element={isAuthenticated ? <MieiAnnunciPage /> : <LoginPage onLogin={login} />} />
             <Route path="/preferiti" element={<PreferitiPage />} />
             <Route path="/confronto" element={<ConfrontoPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />

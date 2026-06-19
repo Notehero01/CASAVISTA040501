@@ -343,4 +343,63 @@ router.put('/profile', require('../middleware/auth').auth, async (req, res) => {
   }
 });
 
+// Delete current account
+router.delete('/profile', require('../middleware/auth').auth, async (req, res) => {
+  try {
+    if (req.user.tipo === 'admin') {
+      return res.status(400).json({ message: 'Gli account admin non possono essere eliminati da questa pagina.' });
+    }
+
+    const userId = req.user.id;
+    const users = await readData('users');
+    const userExists = users.some(u => u.id === userId);
+
+    if (!userExists) {
+      return res.status(404).json({ message: 'Utente non trovato.' });
+    }
+
+    await writeData('users', users.filter(user => user.id !== userId));
+
+    const amministrazioni = await readData('amministrazioni');
+    await writeData('amministrazioni', amministrazioni.filter(profile => profile.userId !== userId));
+
+    const annunci = await readData('annunci');
+    const now = new Date().toISOString();
+    const updatedAnnunci = annunci.map(annuncio => {
+      if (annuncio.userId !== userId) return annuncio;
+
+      return {
+        ...annuncio,
+        moderationStatus: 'deleted',
+        deletedAt: now,
+        updatedAt: now,
+        nome_contatto: 'Account eliminato',
+        telefono_contatto: null,
+        email_contatto: null
+      };
+    });
+    await writeData('annunci', updatedAnnunci);
+
+    const conversations = await readData('conversations');
+    const removedConversationIds = conversations
+      .filter(conversation => Array.isArray(conversation.participants) && conversation.participants.includes(userId))
+      .map(conversation => conversation.id);
+    await writeData(
+      'conversations',
+      conversations.filter(conversation => !removedConversationIds.includes(conversation.id))
+    );
+
+    const messages = await readData('messages');
+    await writeData(
+      'messages',
+      messages.filter(message => !removedConversationIds.includes(message.conversationId) && message.senderId !== userId)
+    );
+
+    res.json({ message: 'Profilo eliminato.' });
+  } catch (error) {
+    console.error('Delete profile error:', error);
+    res.status(500).json({ message: 'Errore del server.' });
+  }
+});
+
 module.exports = router;

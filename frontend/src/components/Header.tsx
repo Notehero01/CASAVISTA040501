@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Building2, Menu, X, Plus, Search, Home, Phone, Calculator, 
   BarChart3, Building, LogIn, User as UserIcon, MessageCircle, LogOut,
-  Heart, Scale, ShieldCheck, Mail
+  Heart, Scale, ShieldCheck, Mail, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -145,6 +145,19 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                       <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link to="/account">
+                        <UserIcon className="h-4 w-4 mr-2" />
+                        Account
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link to="/miei-annunci">
+                        <FileText className="h-4 w-4 mr-2" />
+                        I miei annunci
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     {user?.tipo === 'amministrazione' && (
                       <>
                         <DropdownMenuItem asChild className="cursor-pointer">
@@ -274,6 +287,18 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                     <Button variant="outline" className="w-full justify-start">
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Messaggi {unreadMessages > 0 ? `(${unreadMessages > 9 ? '9+' : unreadMessages})` : ''}
+                    </Button>
+                  </Link>
+                  <Link to="/account" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start">
+                      <UserIcon className="h-4 w-4 mr-2" />
+                      Account
+                    </Button>
+                  </Link>
+                  <Link to="/miei-annunci" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start">
+                      <FileText className="h-4 w-4 mr-2" />
+                      I miei annunci
                     </Button>
                   </Link>
                   {user?.tipo === 'amministrazione' && (

@@ -77,7 +77,9 @@ export const authApi = {
   getPublicUser: (id: string) => api<any>(`/auth/user/${id}`, { auth: false }),
   
   updateProfile: (data: any) => 
-    api<{ user: any }>('/auth/profile', { method: 'PUT', body: data })
+    api<{ user: any }>('/auth/profile', { method: 'PUT', body: data }),
+
+  deleteProfile: () => api<{ message: string }>('/auth/profile', { method: 'DELETE' })
 };
 
 // Annunci API
@@ -88,6 +90,8 @@ export const annunciApi = {
   },
   
   getById: (id: string) => api<any>(`/annunci/${id}`),
+
+  getMine: () => api<any[]>('/annunci/me/list'),
   
   create: (data: any) => api<any>('/annunci', { method: 'POST', body: data }),
   
@@ -100,6 +104,16 @@ export const annunciApi = {
   getRecent: () => api<any[]>('/annunci/recent/list'),
   
   incrementViews: (id: string) => api(`/annunci/${id}/views`, { method: 'POST', auth: false })
+};
+
+// Contact API
+export const contactApi = {
+  send: (data: any) =>
+    api<{ message: string }>('/contact', {
+      method: 'POST',
+      body: data,
+      auth: false
+    })
 };
 
 // Chat API

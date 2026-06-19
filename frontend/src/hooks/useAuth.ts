@@ -112,6 +112,22 @@ export function useAuth() {
     }
   }, []);
 
+  const deleteProfile = useCallback(async () => {
+    try {
+      await authApi.deleteProfile();
+      localStorage.removeItem('casavista_token');
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isAdmin: false,
+        loading: false
+      });
+      return true;
+    } catch (error: any) {
+      throw new Error(error.message || 'Eliminazione profilo non riuscita');
+    }
+  }, []);
+
   return {
     user: state.user,
     isAuthenticated: state.isAuthenticated,
@@ -120,6 +136,7 @@ export function useAuth() {
     login,
     register,
     logout,
-    updateProfile
+    updateProfile,
+    deleteProfile
   };
 }

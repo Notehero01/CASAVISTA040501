@@ -6,17 +6,37 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { contactApi } from '@/utils/api';
 
 export function ContattiPage() {
   const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    nome: '',
+    cognome: '',
+    email: '',
+    telefono: '',
+    messaggio: ''
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!privacyConsent) {
       toast.error('Accetta la Privacy Policy per inviare il messaggio.');
       return;
     }
-    toast.success('Messaggio inviato! Ti risponderemo presto.');
+
+    setLoading(true);
+    try {
+      const result = await contactApi.send({ ...formData, privacyConsent });
+      toast.success(result.message || 'Messaggio inviato! Ti risponderemo presto.');
+      setFormData({ nome: '', cognome: '', email: '', telefono: '', messaggio: '' });
+      setPrivacyConsent(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Non sono riuscito a inviare il messaggio.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -58,20 +78,46 @@ export function ContattiPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label>Nome *</Label>
-                    <Input required />
+                    <Input
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      required
+                    />
                   </div>
                   <div>
                     <Label>Cognome *</Label>
-                    <Input required />
+                    <Input
+                      value={formData.cognome}
+                      onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
+                      required
+                    />
                   </div>
                 </div>
                 <div>
                   <Label>Email *</Label>
-                  <Input type="email" required />
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Telefono</Label>
+                  <Input
+                    type="tel"
+                    value={formData.telefono}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>Messaggio *</Label>
-                  <Textarea className="min-h-[150px]" required />
+                  <Textarea
+                    className="min-h-[150px]"
+                    value={formData.messaggio}
+                    onChange={(e) => setFormData({ ...formData, messaggio: e.target.value })}
+                    required
+                  />
                 </div>
                 <label className="flex items-start gap-3 text-sm text-gray-600">
                   <input
@@ -85,8 +131,9 @@ export function ContattiPage() {
                     Ho letto la <Link to="/privacy" className="text-[#e74c3c] font-medium">Privacy Policy</Link> e autorizzo il trattamento dei dati per ricevere risposta.
                   </span>
                 </label>
-                <Button type="submit" className="bg-[#e74c3c]">
-                  <Send className="h-4 w-4 mr-2" />Invia messaggio
+                <Button type="submit" className="bg-[#e74c3c]" disabled={loading}>
+                  <Send className="h-4 w-4 mr-2" />
+                  {loading ? 'Invio...' : 'Invia messaggio'}
                 </Button>
               </form>
             </div>

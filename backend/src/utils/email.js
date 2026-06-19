@@ -33,8 +33,21 @@ function parseSender(senderValue) {
   };
 }
 
-async function sendWithBrevo(to, subject, html) {
+async function sendWithBrevo(to, subject, html, options = {}) {
   const sender = parseSender(process.env.EMAIL_FROM || process.env.BREVO_SENDER_EMAIL);
+  const payload = {
+    sender,
+    to: [{ email: to }],
+    subject,
+    htmlContent: html
+  };
+
+  if (options.replyTo) {
+    payload.replyTo = {
+      email: options.replyTo,
+      name: options.replyToName || options.replyTo
+    };
+  }
 
   const response = await fetch(process.env.BREVO_API_URL || 'https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -43,12 +56,7 @@ async function sendWithBrevo(to, subject, html) {
       'api-key': process.env.BREVO_API_KEY,
       'content-type': 'application/json'
     },
-    body: JSON.stringify({
-      sender,
-      to: [{ email: to }],
-      subject,
-      htmlContent: html
-    })
+    body: JSON.stringify(payload)
   });
 
   const body = await response.json().catch(() => ({}));
@@ -201,16 +209,31 @@ const templates = {
         <p style="margin-top: 30px; color: #666; font-size: 12px;">© 2024 CasaVista - Tutti i diritti riservati</p>
       </div>
     `
+  }),
+
+  contactRequest: ({ nome, cognome, email, telefono, messaggio }) => ({
+    subject: `Nuovo contatto dal sito - ${nome} ${cognome}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
+        <h1 style="color: #e74c3c;">Nuovo messaggio da CasaVista</h1>
+        <p><strong>Nome:</strong> ${nome} ${cognome}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Telefono:</strong> ${telefono || 'Non indicato'}</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 6px; margin-top: 20px;">
+          <p style="margin: 0; white-space: pre-line;">${messaggio}</p>
+        </div>
+      </div>
+    `
   })
 };
 
 // Funzione per inviare email
-async function sendEmail(to, template, data) {
+async function sendEmail(to, template, data, options = {}) {
   const { subject, html } = getEmailTemplate(template, data);
 
   if (process.env.BREVO_API_KEY) {
     try {
-      const info = await sendWithBrevo(to, subject, html);
+      const info = await sendWithBrevo(to, subject, html, options);
       console.log('Email sent with Brevo:', info.messageId);
       return { success: true, messageId: info.messageId };
     } catch (error) {
@@ -231,7 +254,8 @@ async function sendEmail(to, template, data) {
       from: getDefaultSenderAddress(),
       to,
       subject,
-      html
+      html,
+      replyTo: options.replyTo
     };
     
     const info = await transport.sendMail(mailOptions);
@@ -250,7 +274,8 @@ async function sendEmail(to, template, data) {
             from: getDefaultSenderAddress(),
             to,
             subject,
-            html
+            html,
+            replyTo: options.replyTo
           });
 
           console.log('Email sent with fallback:', info.messageId);

@@ -60,6 +60,21 @@ router.get('/recent/list', async (req, res) => {
   }
 });
 
+// Get annunci owned by current user
+router.get('/me/list', auth, async (req, res) => {
+  try {
+    const annunci = await readData('annunci');
+    const owned = annunci
+      .filter(annuncio => annuncio.userId === req.user.id && annuncio.moderationStatus !== 'deleted' && !annuncio.deletedAt)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json(owned);
+  } catch (error) {
+    console.error('Get own annunci error:', error);
+    res.status(500).json({ message: 'Errore del server.' });
+  }
+});
+
 // Get all annunci (con filtri avanzati)
 router.get('/', async (req, res) => {
   try {
