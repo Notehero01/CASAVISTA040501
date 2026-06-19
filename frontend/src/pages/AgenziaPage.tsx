@@ -17,6 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { amministrazioniApi } from '@/utils/api';
 import { SEO } from '@/utils/seo';
 import type { Annuncio } from '@/types/annuncio';
@@ -234,11 +235,7 @@ export function AgenziaPage() {
                     className="overflow-hidden rounded-lg border bg-white transition-shadow hover:shadow-md"
                   >
                     <div className="relative aspect-[4/3] bg-gray-100">
-                      <img
-                        src={annuncio.immagini?.[0] || 'https://via.placeholder.com/600x450'}
-                        alt={annuncio.titolo}
-                        className="h-full w-full object-cover"
-                      />
+                      <WatermarkedImage src={annuncio.immagini?.[0]} alt={annuncio.titolo} className="h-full w-full" fit="contain" />
                       <Badge className={`absolute left-3 top-3 ${annuncio.tipo === 'vendita' ? 'bg-[#e74c3c]' : 'bg-blue-600'}`}>
                         {annuncio.tipo === 'vendita' ? 'Vendita' : 'Affitto'}
                       </Badge>

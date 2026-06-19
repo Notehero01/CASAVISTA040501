@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Bed, Bath, Maximize, User, Phone, Mail, ArrowLeft, Heart, Check, Eye, MessageCircle, Scale, Share2, BadgeCheck, Building2, ChevronLeft, ChevronRight, Image } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize, User, Phone, Mail, ArrowLeft, Heart, Check, Eye, MessageCircle, Scale, Share2, BadgeCheck, Building2, ChevronLeft, ChevronRight, Image, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -9,6 +9,7 @@ import { annunciApi, authApi } from '@/utils/api';
 import { usePreferiti } from '@/hooks/usePreferiti';
 import { useConfronto } from '@/hooks/useConfronto';
 import { MapView } from '@/components/MapView';
+import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { SEO, generateMetaTitle, generateMetaDescription } from '@/utils/seo';
 import { RISCALDAMENTO, STATI_IMMOBILE } from '@/types/annuncio';
 import type { Annuncio } from '@/types/annuncio';
@@ -26,6 +27,7 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [userInfo, setUserInfo] = useState<{
     isVerified?: boolean;
     isAgency?: boolean;
@@ -36,6 +38,17 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   } | null>(null);
   const { isPreferito, togglePreferito } = usePreferiti();
   const { isNelConfronto, toggleConfronto, canAddMore } = useConfronto();
+  const immagini = Array.isArray(annuncio?.immagini) ? annuncio.immagini.filter(Boolean) : [];
+  const activeImage = immagini[activeImageIndex] || 'https://via.placeholder.com/800x600';
+  const hasMultipleImages = immagini.length > 1;
+  const showPreviousImage = () => {
+    if (!hasMultipleImages) return;
+    setActiveImageIndex((current) => (current === 0 ? immagini.length - 1 : current - 1));
+  };
+  const showNextImage = () => {
+    if (!hasMultipleImages) return;
+    setActiveImageIndex((current) => (current + 1) % immagini.length);
+  };
 
   useEffect(() => {
     if (slug) {
@@ -58,6 +71,25 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   useEffect(() => {
     setActiveImageIndex(0);
   }, [annuncio?.id]);
+
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsLightboxOpen(false);
+      if (event.key === 'ArrowLeft') showPreviousImage();
+      if (event.key === 'ArrowRight') showNextImage();
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isLightboxOpen]);
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -117,18 +149,6 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-[#e74c3c] border-t-transparent rounded-full animate-spin" /></div>;
   if (!annuncio) return <div className="text-center py-20">Annuncio non trovato</div>;
 
-  const immagini = Array.isArray(annuncio.immagini) ? annuncio.immagini.filter(Boolean) : [];
-  const activeImage = immagini[activeImageIndex] || 'https://via.placeholder.com/800x600';
-  const hasMultipleImages = immagini.length > 1;
-  const showPreviousImage = () => {
-    if (!hasMultipleImages) return;
-    setActiveImageIndex((current) => (current === 0 ? immagini.length - 1 : current - 1));
-  };
-  const showNextImage = () => {
-    if (!hasMultipleImages) return;
-    setActiveImageIndex((current) => (current + 1) % immagini.length);
-  };
-
   const statoLabel = STATI_IMMOBILE.find(item => item.value === annuncio.stato)?.label || annuncio.stato;
   const riscaldamentoLabel = RISCALDAMENTO.find(item => item.value === annuncio.riscaldamento)?.label || annuncio.riscaldamento;
   const technicalDetails = [
@@ -167,7 +187,19 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl overflow-hidden shadow-sm mb-6">
               <div className="aspect-video relative">
-                <img src={activeImage} alt={`${annuncio.titolo} - foto ${activeImageIndex + 1}`} className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(true)}
+                  className="h-full w-full cursor-zoom-in bg-gray-100"
+                  aria-label="Apri foto a schermo intero"
+                >
+                  <WatermarkedImage
+                    src={activeImage}
+                    alt={`${annuncio.titolo} - foto ${activeImageIndex + 1}`}
+                    className="h-full w-full"
+                    fit="contain"
+                  />
+                </button>
                 <div className="absolute top-4 left-4 flex gap-2">
                   <Badge className={annuncio.tipo === 'vendita' ? 'bg-[#e74c3c]' : 'bg-blue-600'}>
                     {annuncio.tipo === 'vendita' ? 'Vendita' : 'Affitto'}
@@ -210,7 +242,12 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
                       }`}
                       aria-label={`Mostra foto ${index + 1}`}
                     >
-                      <img src={img} alt={`${annuncio.titolo} miniatura ${index + 1}`} className="h-full w-full object-cover" />
+                      <WatermarkedImage
+                        src={img}
+                        alt={`${annuncio.titolo} miniatura ${index + 1}`}
+                        fit="contain"
+                        watermark={false}
+                      />
                     </button>
                   ))}
                 </div>
@@ -396,6 +433,54 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
           </div>
         </div>
       </div>
+
+      {isLightboxOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/92 p-4 text-white" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            onClick={() => setIsLightboxOpen(false)}
+            className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/22"
+            aria-label="Chiudi foto"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          {hasMultipleImages && (
+            <>
+              <button
+                type="button"
+                onClick={showPreviousImage}
+                className="absolute left-4 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/22"
+                aria-label="Foto precedente"
+              >
+                <ChevronLeft className="h-7 w-7" />
+              </button>
+              <button
+                type="button"
+                onClick={showNextImage}
+                className="absolute right-4 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/22"
+                aria-label="Foto successiva"
+              >
+                <ChevronRight className="h-7 w-7" />
+              </button>
+            </>
+          )}
+
+          <div className="mx-auto flex h-full max-w-6xl flex-col gap-4 pt-14">
+            <WatermarkedImage
+              src={activeImage}
+              alt={`${annuncio.titolo} - foto ${activeImageIndex + 1}`}
+              fit="contain"
+              className="min-h-0 flex-1 bg-black"
+              watermarkClassName="bottom-5 right-5 bg-white/18 px-3 py-1 text-xs tracking-[0.24em] text-white/45"
+            />
+            <div className="flex items-center justify-between gap-4 text-sm text-white/75">
+              <span>{activeImageIndex + 1}/{immagini.length || 1}</span>
+              <span className="truncate">{annuncio.titolo}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

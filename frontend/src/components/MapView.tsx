@@ -4,6 +4,7 @@ import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 're
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { WatermarkedImage } from '@/components/WatermarkedImage';
 import type { Annuncio } from '@/types/annuncio';
 
 interface MapViewProps {
@@ -299,11 +300,7 @@ function ControlButton({ children, label, onClick }: { children: ReactNode; labe
 function PropertyPopup({ annuncio, onAnnuncioClick }: { annuncio: Annuncio; onAnnuncioClick?: (annuncio: Annuncio) => void }) {
   return (
     <div className="w-64 overflow-hidden rounded-xl bg-white">
-      <img
-        src={annuncio.immagini[0] || 'https://via.placeholder.com/320x180'}
-        alt={annuncio.titolo}
-        className="h-32 w-full object-cover"
-      />
+      <WatermarkedImage src={annuncio.immagini[0]} alt={annuncio.titolo} className="h-32 w-full" fit="contain" />
       <div className="space-y-2 p-3">
         <div>
           <p className="text-lg font-bold text-[#e74c3c]">{formatPrice(annuncio)}</p>

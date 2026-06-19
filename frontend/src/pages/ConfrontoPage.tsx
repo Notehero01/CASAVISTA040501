@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { X, Scale, Bed, Bath, Maximize, MapPin, Check, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { useConfronto } from '@/hooks/useConfronto';
 import { annunciApi } from '@/utils/api';
 import type { Annuncio } from '@/types/annuncio';
@@ -89,11 +90,7 @@ export function ConfrontoPage() {
                           <X className="h-4 w-4" />
                         </button>
                         <Link to={`/annuncio/${annuncio.id}`}>
-                          <img
-                            src={annuncio.immagini[0] || 'https://via.placeholder.com/200x150'}
-                            alt={annuncio.titolo}
-                            className="w-full h-32 object-cover rounded-lg mb-3"
-                          />
+                          <WatermarkedImage src={annuncio.immagini[0]} alt={annuncio.titolo} className="mb-3 h-32 w-full rounded-lg" fit="contain" />
                           <h3 className="font-semibold text-sm line-clamp-2">{annuncio.titolo}</h3>
                         </Link>
                       </div>

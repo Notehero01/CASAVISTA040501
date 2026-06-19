@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { annunciApi, uploadApi } from '@/utils/api';
 import { AddressSearch } from '@/components/MapView';
+import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { CATEGORIE, CARATTERISTICHE, CLASSI_ENERGETICHE, STATI_IMMOBILE, RISCALDAMENTO } from '@/types/annuncio';
 
 const MAX_IMAGES = 30;
@@ -358,7 +359,7 @@ export function PubblicaPage() {
                 <div className="grid grid-cols-3 gap-2 mt-2 sm:grid-cols-5">
                   {formData.immagini.map((img, i) => (
                     <div key={i} className="relative aspect-square">
-                      <img src={img} alt="" className="w-full h-full object-cover rounded-lg" />
+                      <WatermarkedImage src={img} alt={`Foto caricata ${i + 1}`} className="rounded-lg" fit="contain" />
                       <button onClick={() => setFormData({ ...formData, immagini: formData.immagini.filter((_, idx) => idx !== i) })} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full">
                         <X className="h-3 w-3" />
                       </button>

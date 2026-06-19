@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search, MapPin, Building2, Home, Castle, Briefcase, Store, Trees, TrendingUp, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { annunciApi } from '@/utils/api';
 import type { Annuncio } from '@/types/annuncio';
 
@@ -80,7 +81,7 @@ export function HomePage() {
             {featured.map((a) => (
               <Link key={a.id} to={`/annuncio/${a.id}`} className="bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="aspect-[4/3] relative">
-                  <img src={a.immagini[0] || 'https://via.placeholder.com/400x300'} alt={a.titolo} className="w-full h-full object-cover" />
+                  <WatermarkedImage src={a.immagini[0]} alt={a.titolo} className="h-full w-full" fit="contain" />
                   <span className={`absolute top-3 left-3 px-2 py-1 rounded text-xs font-medium text-white ${a.tipo === 'vendita' ? 'bg-[#e74c3c]' : 'bg-blue-600'}`}>
                     {a.tipo === 'vendita' ? 'Vendita' : 'Affitto'}
                   </span>
@@ -107,7 +108,7 @@ export function HomePage() {
             {recent.map((a) => (
               <Link key={a.id} to={`/annuncio/${a.id}`} className="bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="aspect-[4/3] relative">
-                  <img src={a.immagini[0] || 'https://via.placeholder.com/400x300'} alt={a.titolo} className="w-full h-full object-cover" />
+                  <WatermarkedImage src={a.immagini[0]} alt={a.titolo} className="h-full w-full" fit="contain" />
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 line-clamp-1">{a.titolo}</h3>

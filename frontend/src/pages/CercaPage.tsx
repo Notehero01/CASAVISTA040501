@@ -9,6 +9,7 @@ import { annunciApi } from '@/utils/api';
 import { usePreferiti } from '@/hooks/usePreferiti';
 import { useConfronto } from '@/hooks/useConfronto';
 import { MapView, AddressSearch } from '@/components/MapView';
+import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { SEO } from '@/utils/seo';
 import { CLASSI_ENERGETICHE, STATI_IMMOBILE, RISCALDAMENTO, CARATTERISTICHE } from '@/types/annuncio';
 import type { Annuncio } from '@/types/annuncio';
@@ -348,7 +349,7 @@ export function CercaPage() {
             {annunci.map((a) => (
               <Link key={a.id} to={`/annuncio/${a.slug || a.id}`} className="bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow group">
                 <div className="aspect-[4/3] relative">
-                  <img src={a.immagini[0] || 'https://via.placeholder.com/400x300'} alt={a.titolo} className="w-full h-full object-cover" />
+                  <WatermarkedImage src={a.immagini[0]} alt={a.titolo} className="h-full w-full" fit="contain" />
                   <Badge className={`absolute top-3 left-3 ${a.tipo === 'vendita' ? 'bg-[#e74c3c]' : 'bg-blue-600'}`}>
                     {a.tipo === 'vendita' ? 'Vendita' : 'Affitto'}
                   </Badge>

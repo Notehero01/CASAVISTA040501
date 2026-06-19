@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MapPin, Bed, Bath, Maximize, Trash2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { usePreferiti } from '@/hooks/usePreferiti';
 import { annunciApi } from '@/utils/api';
 import type { Annuncio } from '@/types/annuncio';
@@ -72,11 +73,7 @@ export function PreferitiPage() {
             {annunci.map((annuncio) => (
               <div key={annuncio.id} className="bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow group">
                 <div className="aspect-[4/3] relative">
-                  <img 
-                    src={annuncio.immagini[0] || 'https://via.placeholder.com/400x300'} 
-                    alt={annuncio.titolo} 
-                    className="w-full h-full object-cover"
-                  />
+                  <WatermarkedImage src={annuncio.immagini[0]} alt={annuncio.titolo} className="h-full w-full" fit="contain" />
                   <button
                     onClick={() => rimuoviPreferito(annuncio.id)}
                     className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
