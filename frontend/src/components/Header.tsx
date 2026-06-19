@@ -67,7 +67,7 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden xl:flex items-center gap-1">
+          <nav className="hidden min-[1360px]:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
@@ -85,7 +85,7 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
           </nav>
 
           {/* CTA Buttons */}
-          <div className="hidden xl:flex items-center gap-3">
+          <div className="hidden min-[1360px]:flex items-center gap-3">
             {/* Preferiti - sempre visibile */}
             <Link to="/preferiti">
               <Button variant="ghost" size="icon" className="relative">
@@ -218,7 +218,7 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
 
           {/* Mobile Menu Button */}
           <button
-            className="xl:hidden p-2 rounded-lg hover:bg-gray-100"
+            className="min-[1360px]:hidden p-2 rounded-lg hover:bg-gray-100"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -227,7 +227,7 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="xl:hidden border-t border-gray-200 py-4">
+          <div className="min-[1360px]:hidden border-t border-gray-200 py-4">
             <nav className="flex flex-col gap-2">
               {navLinks.map((link) => (
                 <Link
