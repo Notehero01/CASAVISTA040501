@@ -52,19 +52,29 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
 
   useEffect(() => {
     if (slug) {
+      setLoading(true);
+      setAnnuncio(null);
+      setUserInfo(null);
+
       // Incrementa visualizzazioni
       annunciApi.incrementViews(slug).catch(() => {});
       
-      annunciApi.getById(slug).then(data => {
-        setAnnuncio(data);
-        // Carica info utente per badge verificato
-        if (data.userId) {
-          authApi.getPublicUser(data.userId)
-            .then(setUserInfo)
-            .catch(() => {});
-        }
-        setLoading(false);
-      });
+      annunciApi.getById(slug)
+        .then(data => {
+          setAnnuncio(data);
+          // Carica info utente per badge verificato
+          if (data.userId) {
+            authApi.getPublicUser(data.userId)
+              .then(setUserInfo)
+              .catch(() => {});
+          }
+        })
+        .catch(() => {
+          setAnnuncio(null);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
   }, [slug]);
 
