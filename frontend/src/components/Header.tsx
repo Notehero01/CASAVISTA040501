@@ -62,7 +62,6 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold text-gray-900 leading-tight">CasaVista</span>
-              <span className="text-[10px] text-[#e74c3c] font-medium -mt-0.5">100% Gratuito</span>
             </div>
           </Link>
 
@@ -261,7 +260,7 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                     <Button variant="outline" className="w-full">Accedi</Button>
                   </Link>
                   <Link to="/registrazione" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full bg-[#e74c3c]">Registrati gratis</Button>
+                    <Button className="w-full bg-[#e74c3c]">Registrati</Button>
                   </Link>
                 </div>
               )}

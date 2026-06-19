@@ -148,7 +148,7 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
                 </span>
               </label>
               <Button type="submit" className="w-full bg-[#e74c3c] hover:bg-[#c0392b]" disabled={loading}>
-                {loading ? 'Registrazione...' : 'Registrati gratis'}
+                {loading ? 'Registrazione...' : 'Registrati'}
               </Button>
             </form>
             <div className="mt-6 text-center">

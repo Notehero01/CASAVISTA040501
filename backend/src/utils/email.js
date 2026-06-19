@@ -154,7 +154,7 @@ const templates = {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #e74c3c;">Benvenuto su CasaVista!</h1>
         <p>Ciao ${nome},</p>
-        <p>Grazie per esserti registrato su CasaVista, il portale immobiliare 100% gratuito!</p>
+        <p>Grazie per esserti registrato su CasaVista, il portale immobiliare per cercare e pubblicare annunci.</p>
         <p>Con il tuo account puoi:</p>
         <ul>
           <li>Pubblicare annunci illimitati</li>

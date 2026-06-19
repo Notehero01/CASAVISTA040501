@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Bed, Bath, Maximize, User, Phone, Mail, ArrowLeft, Heart, Check, Eye, MessageCircle, Scale, Share2, BadgeCheck, Building2 } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize, User, Phone, Mail, ArrowLeft, Heart, Check, Eye, MessageCircle, Scale, Share2, BadgeCheck, Building2, ChevronLeft, ChevronRight, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -25,6 +25,7 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   const [annuncio, setAnnuncio] = useState<Annuncio | null>(null);
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [userInfo, setUserInfo] = useState<{
     isVerified?: boolean;
     isAgency?: boolean;
@@ -53,6 +54,10 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
       });
     }
   }, [slug]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [annuncio?.id]);
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -112,6 +117,18 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-[#e74c3c] border-t-transparent rounded-full animate-spin" /></div>;
   if (!annuncio) return <div className="text-center py-20">Annuncio non trovato</div>;
 
+  const immagini = Array.isArray(annuncio.immagini) ? annuncio.immagini.filter(Boolean) : [];
+  const activeImage = immagini[activeImageIndex] || 'https://via.placeholder.com/800x600';
+  const hasMultipleImages = immagini.length > 1;
+  const showPreviousImage = () => {
+    if (!hasMultipleImages) return;
+    setActiveImageIndex((current) => (current === 0 ? immagini.length - 1 : current - 1));
+  };
+  const showNextImage = () => {
+    if (!hasMultipleImages) return;
+    setActiveImageIndex((current) => (current + 1) % immagini.length);
+  };
+
   const statoLabel = STATI_IMMOBILE.find(item => item.value === annuncio.stato)?.label || annuncio.stato;
   const riscaldamentoLabel = RISCALDAMENTO.find(item => item.value === annuncio.riscaldamento)?.label || annuncio.riscaldamento;
   const technicalDetails = [
@@ -150,13 +167,54 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl overflow-hidden shadow-sm mb-6">
               <div className="aspect-video relative">
-                <img src={annuncio.immagini[0] || 'https://via.placeholder.com/800x600'} alt={annuncio.titolo} className="w-full h-full object-cover" />
+                <img src={activeImage} alt={`${annuncio.titolo} - foto ${activeImageIndex + 1}`} className="w-full h-full object-cover" />
                 <div className="absolute top-4 left-4 flex gap-2">
                   <Badge className={annuncio.tipo === 'vendita' ? 'bg-[#e74c3c]' : 'bg-blue-600'}>
                     {annuncio.tipo === 'vendita' ? 'Vendita' : 'Affitto'}
                   </Badge>
                 </div>
+                {hasMultipleImages && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={showPreviousImage}
+                      className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 focus:outline-none focus:ring-2 focus:ring-white"
+                      aria-label="Foto precedente"
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={showNextImage}
+                      className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 focus:outline-none focus:ring-2 focus:ring-white"
+                      aria-label="Foto successiva"
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </button>
+                    <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-black/65 px-3 py-1 text-sm font-medium text-white">
+                      <Image className="h-4 w-4" />
+                      {activeImageIndex + 1}/{immagini.length}
+                    </div>
+                  </>
+                )}
               </div>
+              {hasMultipleImages && (
+                <div className="flex gap-2 overflow-x-auto border-t bg-white p-3">
+                  {immagini.map((img, index) => (
+                    <button
+                      key={`${img}-${index}`}
+                      type="button"
+                      onClick={() => setActiveImageIndex(index)}
+                      className={`h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
+                        activeImageIndex === index ? 'border-[#e74c3c]' : 'border-transparent hover:border-gray-300'
+                      }`}
+                      aria-label={`Mostra foto ${index + 1}`}
+                    >
+                      <img src={img} alt={`${annuncio.titolo} miniatura ${index + 1}`} className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-xl shadow-sm p-6">

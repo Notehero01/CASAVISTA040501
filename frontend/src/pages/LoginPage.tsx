@@ -77,7 +77,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </form>
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Non hai un account? <Link to="/registrazione" className="text-[#e74c3c] font-medium">Registrati gratis</Link>
+                Non hai un account? <Link to="/registrazione" className="text-[#e74c3c] font-medium">Registrati</Link>
               </p>
             </div>
           </CardContent>

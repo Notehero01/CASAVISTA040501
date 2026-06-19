@@ -14,7 +14,7 @@ export function Footer() {
               <span className="text-xl font-bold">CasaVista</span>
             </Link>
             <p className="text-gray-400 text-sm mb-4">
-              Il portale immobiliare 100% gratuito. Pubblica annunci senza limiti.
+              Il portale immobiliare per cercare e pubblicare annunci a Modena e provincia.
             </p>
             <div className="flex gap-3">
               <a href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-[#e74c3c] transition-colors">
@@ -74,7 +74,7 @@ export function Footer() {
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-center">
           <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} CasaVista. Tutti i diritti riservati. 100% Gratuito.
+            © {new Date().getFullYear()} CasaVista. Tutti i diritti riservati.
           </p>
         </div>
       </div>

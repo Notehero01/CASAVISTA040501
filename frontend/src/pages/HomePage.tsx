@@ -33,13 +33,13 @@ export function HomePage() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-[#e74c3c]/20 text-[#e74c3c] px-4 py-2 rounded-full text-sm font-medium mb-6">
               <span className="w-2 h-2 bg-[#e74c3c] rounded-full animate-pulse"></span>
-              100% Gratuito - Pubblica e cerca senza costi
+              Annunci immobiliari a Modena e provincia
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
               Trova la casa dei tuoi <span className="text-[#e74c3c]">sogni</span>
             </h1>
             <p className="text-lg md:text-xl text-gray-300 mb-10">
-              Il portale immobiliare completamente gratuito. <span className="text-[#e74c3c] font-semibold">Zero commissioni, zero costi nascosti.</span>
+              Cerca, confronta e pubblica immobili con un'esperienza semplice e moderna.
             </p>
 
             <div className="bg-white rounded-2xl p-4 md:p-6 shadow-2xl">
