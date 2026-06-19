@@ -10,6 +10,7 @@ import { usePreferiti } from '@/hooks/usePreferiti';
 import { useConfronto } from '@/hooks/useConfronto';
 import { MapView } from '@/components/MapView';
 import { SEO, generateMetaTitle, generateMetaDescription } from '@/utils/seo';
+import { RISCALDAMENTO, STATI_IMMOBILE } from '@/types/annuncio';
 import type { Annuncio } from '@/types/annuncio';
 import type { User as AuthUser } from '@/hooks/useAuth';
 
@@ -110,6 +111,16 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-[#e74c3c] border-t-transparent rounded-full animate-spin" /></div>;
   if (!annuncio) return <div className="text-center py-20">Annuncio non trovato</div>;
+
+  const statoLabel = STATI_IMMOBILE.find(item => item.value === annuncio.stato)?.label || annuncio.stato;
+  const riscaldamentoLabel = RISCALDAMENTO.find(item => item.value === annuncio.riscaldamento)?.label || annuncio.riscaldamento;
+  const technicalDetails = [
+    annuncio.classe_energetica ? { label: 'Classe energetica', value: annuncio.classe_energetica } : null,
+    statoLabel ? { label: 'Stato', value: statoLabel } : null,
+    riscaldamentoLabel ? { label: 'Riscaldamento', value: riscaldamentoLabel } : null,
+    annuncio.anno_costruzione ? { label: 'Anno costruzione', value: String(annuncio.anno_costruzione) } : null,
+    annuncio.piano !== undefined && annuncio.piano !== null ? { label: 'Piano', value: String(annuncio.piano) } : null
+  ].filter(Boolean) as { label: string; value: string }[];
 
   const metaTitle = generateMetaTitle(annuncio);
   const metaDescription = generateMetaDescription(annuncio);
@@ -221,6 +232,20 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
                       <span key={i} className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm flex items-center gap-1">
                         <Check className="h-3 w-3" />{c}
                       </span>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {technicalDetails.length > 0 && (
+                <>
+                  <h2 className="text-lg font-semibold mt-6 mb-3">Dettagli immobile</h2>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {technicalDetails.map((detail) => (
+                      <div key={detail.label} className="rounded-lg bg-gray-50 p-3">
+                        <p className="text-sm text-gray-500">{detail.label}</p>
+                        <p className="font-semibold text-gray-900">{detail.value}</p>
+                      </div>
                     ))}
                   </div>
                 </>

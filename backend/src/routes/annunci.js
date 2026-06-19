@@ -3,6 +3,8 @@ const router = express.Router();
 const { readData, writeData, generateId } = require('../utils/db');
 const { auth } = require('../middleware/auth');
 
+const MAX_IMAGES_PER_ANNUNCIO = 30;
+
 // Funzione per generare slug
 function generateSlug(titolo, id) {
   const slugified = titolo
@@ -216,6 +218,10 @@ router.post('/', auth, async (req, res) => {
       telefono_contatto,
       email_contatto
     } = req.body;
+    const immaginiPulite = Array.isArray(immagini) ? immagini.slice(0, MAX_IMAGES_PER_ANNUNCIO) : [];
+    const caratteristichePulite = Array.isArray(caratteristiche)
+      ? caratteristiche.map(item => String(item).trim()).filter(Boolean).slice(0, 60)
+      : [];
 
     // Validazione
     if (!titolo || !descrizione || !prezzo || !tipo || !categoria || !superficie) {
@@ -243,8 +249,8 @@ router.post('/', auth, async (req, res) => {
       cap: cap || '',
       provincia: provincia || '',
       coordinate: req.body.coordinate || null,
-      immagini: Array.isArray(immagini) ? immagini : [],
-      caratteristiche: Array.isArray(caratteristiche) ? caratteristiche : [],
+      immagini: immaginiPulite,
+      caratteristiche: caratteristichePulite,
       classe_energetica: classe_energetica || null,
       stato: stato || null,
       riscaldamento: riscaldamento || null,
@@ -288,9 +294,17 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Non autorizzato.' });
     }
 
+    const updateBody = { ...req.body };
+    if (Array.isArray(updateBody.immagini)) {
+      updateBody.immagini = updateBody.immagini.slice(0, MAX_IMAGES_PER_ANNUNCIO);
+    }
+    if (Array.isArray(updateBody.caratteristiche)) {
+      updateBody.caratteristiche = updateBody.caratteristiche.map(item => String(item).trim()).filter(Boolean).slice(0, 60);
+    }
+
     annunci[index] = {
       ...annunci[index],
-      ...req.body,
+      ...updateBody,
       updatedAt: new Date().toISOString()
     };
 

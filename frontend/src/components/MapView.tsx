@@ -16,7 +16,11 @@ interface MapViewProps {
 }
 
 interface AddressSearchProps {
-  onSelect: (address: string, coordinates: { lat: number; lng: number }) => void;
+  onSelect: (
+    address: string,
+    coordinates: { lat: number; lng: number },
+    details?: { citta?: string; cap?: string; provincia?: string }
+  ) => void;
   placeholder?: string;
 }
 
@@ -25,6 +29,7 @@ interface GeoResult {
   display_name: string;
   lat: string;
   lon: string;
+  address?: Record<string, string | undefined>;
 }
 
 interface Poi {
@@ -46,6 +51,18 @@ interface PoiElement {
 }
 
 const DEFAULT_CENTER: [number, number] = [44.6471, 10.9252]; // Modena
+const MODENA_VIEWBOX = '10.73,44.78,11.08,44.49';
+const PROVINCE_CODES: Record<string, string> = {
+  modena: 'MO',
+  bologna: 'BO',
+  reggio: 'RE',
+  parma: 'PR',
+  piacenza: 'PC',
+  ferrara: 'FE',
+  ravenna: 'RA',
+  forl: 'FC',
+  rimini: 'RN'
+};
 
 const POI_STYLE: Record<string, { label: string; color: string }> = {
   restaurant: { label: 'Ristorante', color: '#ff6b35' },
@@ -63,6 +80,45 @@ function formatPrice(annuncio: Annuncio) {
 
 function getAnnuncioUrl(annuncio: Annuncio) {
   return `/annuncio/${annuncio.slug || annuncio.id}`;
+}
+
+function cleanAddressPart(value?: string) {
+  return String(value || '')
+    .replace(/^Comune di\s+/i, '')
+    .replace(/^Provincia di\s+/i, '')
+    .trim();
+}
+
+function compactAddress(result: GeoResult) {
+  const address = result.address || {};
+  const road = address.road || address.pedestrian || address.footway || address.cycleway || address.path;
+  const street = [cleanAddressPart(road), cleanAddressPart(address.house_number)].filter(Boolean).join(' ');
+  const city = cleanAddressPart(address.city || address.town || address.village || address.municipality || address.county);
+  const postcode = cleanAddressPart(address.postcode);
+  const firstFallback = result.display_name.split(',')[0]?.trim();
+  const parts = [street || firstFallback, city, postcode].filter(Boolean);
+
+  return Array.from(new Set(parts)).join(', ');
+}
+
+function getProvinceCode(address?: Record<string, string | undefined>) {
+  if (!address) return '';
+  const isoCode = address['ISO3166-2-lvl6'] || address['ISO3166-2-lvl4'];
+  const isoMatch = isoCode?.match(/IT-([A-Z]{2})$/i);
+  if (isoMatch) return isoMatch[1].toUpperCase();
+
+  const province = cleanAddressPart(address.province || address.county || address.state_district).toLowerCase();
+  const matchedKey = Object.keys(PROVINCE_CODES).find(key => province.includes(key));
+  return matchedKey ? PROVINCE_CODES[matchedKey] : '';
+}
+
+function getAddressDetails(result: GeoResult) {
+  const address = result.address || {};
+  return {
+    citta: cleanAddressPart(address.city || address.town || address.village || address.municipality || address.county),
+    cap: cleanAddressPart(address.postcode),
+    provincia: getProvinceCode(address)
+  };
 }
 
 function createAnnuncioIcon(tipo: Annuncio['tipo']) {
@@ -309,7 +365,7 @@ export function MapView({ annunci, onAnnuncioClick, center, zoom = 12, height = 
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=it`,
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=it&addressdetails=1&dedupe=1&viewbox=${MODENA_VIEWBOX}&bounded=0`,
         { headers: { 'Accept-Language': 'it' } },
       );
       const results = (await response.json()) as GeoResult[];
@@ -393,7 +449,7 @@ export function MapView({ annunci, onAnnuncioClick, center, zoom = 12, height = 
         {!isSatellite ? (
           <TileLayer
             attribution='&copy; OpenStreetMap contributors &copy; CARTO'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             subdomains={['a', 'b', 'c', 'd']}
             maxZoom={19}
           />
@@ -462,7 +518,7 @@ export function AddressSearch({ onSelect, placeholder = 'Cerca indirizzo...' }: 
       setLoading(true);
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&limit=5&countrycodes=it&addressdetails=1`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&limit=6&countrycodes=it&addressdetails=1&dedupe=1&viewbox=${MODENA_VIEWBOX}&bounded=0`,
           { headers: { 'Accept-Language': 'it' } },
         );
         const data = (await response.json()) as GeoResult[];
@@ -479,9 +535,10 @@ export function AddressSearch({ onSelect, placeholder = 'Cerca indirizzo...' }: 
   }, [query]);
 
   const selectResult = (result: GeoResult) => {
-    setQuery(result.display_name);
+    const cleanAddress = compactAddress(result);
+    setQuery(cleanAddress);
     setOpen(false);
-    onSelect(result.display_name, { lat: Number(result.lat), lng: Number(result.lon) });
+    onSelect(cleanAddress, { lat: Number(result.lat), lng: Number(result.lon) }, getAddressDetails(result));
   };
 
   return (
@@ -508,7 +565,8 @@ export function AddressSearch({ onSelect, placeholder = 'Cerca indirizzo...' }: 
               onClick={() => selectResult(result)}
               className="block w-full border-b px-4 py-3 text-left text-sm last:border-b-0 hover:bg-gray-50"
             >
-              {result.display_name}
+              {compactAddress(result)}
+              <span className="mt-1 block text-xs text-gray-500">{result.display_name}</span>
             </button>
           ))}
         </div>

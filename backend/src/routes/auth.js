@@ -30,10 +30,14 @@ function createPasswordResetToken() {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, nome, cognome, telefono, tipo = 'utente', privacyConsent } = req.body;
+    const { email, password, nome, cognome, telefono, tipo = 'utente', privacyConsent, ragioneSociale } = req.body;
+    const accountType = ['utente', 'amministrazione'].includes(tipo) ? tipo : 'utente';
+    const agencyName = String(ragioneSociale || nome || '').trim();
+    const firstName = accountType === 'amministrazione' ? agencyName : String(nome || '').trim();
+    const lastName = accountType === 'amministrazione' ? String(cognome || 'Agenzia').trim() : String(cognome || '').trim();
 
     // Validazione
-    if (!email || !password || !nome || !cognome) {
+    if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({ message: 'Tutti i campi sono obbligatori.' });
     }
 
@@ -57,10 +61,10 @@ router.post('/register', async (req, res) => {
       id: generateId(),
       email: email.toLowerCase(),
       password: hashPassword(password),
-      nome,
-      cognome,
+      nome: firstName,
+      cognome: lastName,
       telefono: telefono || null,
-      tipo: ['utente', 'amministrazione'].includes(tipo) ? tipo : 'utente',
+      tipo: accountType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       verified: false,
@@ -72,6 +76,33 @@ router.post('/register', async (req, res) => {
 
     users.push(newUser);
     await writeData('users', users);
+
+    if (accountType === 'amministrazione') {
+      const amministrazioni = await readData('amministrazioni');
+      if (!amministrazioni.find(profile => profile.userId === newUser.id)) {
+        amministrazioni.push({
+          userId: newUser.id,
+          ragioneSociale: agencyName,
+          descrizione: '',
+          citta: '',
+          provincia: '',
+          indirizzo: '',
+          sitoWeb: '',
+          telefono: telefono || '',
+          whatsapp: '',
+          logo: '',
+          coverImage: '',
+          servizi: [],
+          annoFondazione: null,
+          condominiGestiti: 0,
+          rating: 0,
+          recensioni: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        await writeData('amministrazioni', amministrazioni);
+      }
+    }
 
     // Invia email di benvenuto (non bloccante)
     sendEmail(newUser.email, 'welcome', [newUser.nome]).catch(err => {

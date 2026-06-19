@@ -1,21 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, Check, MapPin, Euro, Bed, Bath, Maximize, Calendar, User, Phone, Mail, Navigation } from 'lucide-react';
+import { Upload, X, Check, MapPin, Euro, Bed, Bath, Maximize, User, Phone, Mail, Navigation, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { annunciApi, uploadApi } from '@/utils/api';
 import { AddressSearch } from '@/components/MapView';
 import { CATEGORIE, CARATTERISTICHE, CLASSI_ENERGETICHE, STATI_IMMOBILE, RISCALDAMENTO } from '@/types/annuncio';
 
+const MAX_IMAGES = 30;
+
 export function PubblicaPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [customCaratteristica, setCustomCaratteristica] = useState('');
   
   const [formData, setFormData] = useState({
     tipo: 'vendita' as 'vendita' | 'affitto',
@@ -53,21 +56,48 @@ export function PubblicaPage() {
     }));
   };
 
+  const addCustomCaratteristica = () => {
+    const value = customCaratteristica.trim();
+    if (!value) return;
+    if (formData.caratteristiche.some(item => item.toLowerCase() === value.toLowerCase())) {
+      toast.info('Caratteristica gia inserita');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      caratteristiche: [...prev.caratteristiche, value]
+    }));
+    setCustomCaratteristica('');
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    
-    for (const file of Array.from(files)) {
-      if (formData.immagini.length >= 10) {
-        toast.error('Massimo 10 immagini');
-        return;
-      }
-      try {
-        const result = await uploadApi.uploadImage(file);
-        setFormData(prev => ({ ...prev, immagini: [...prev.immagini, result.url] }));
-      } catch (error: any) {
-        toast.error(error.message);
-      }
+
+    const availableSlots = MAX_IMAGES - formData.immagini.length;
+    if (availableSlots <= 0) {
+      toast.error(`Massimo ${MAX_IMAGES} immagini`);
+      e.target.value = '';
+      return;
+    }
+
+    const selectedFiles = Array.from(files).slice(0, availableSlots);
+    if (selectedFiles.length < files.length) {
+      toast.info(`Ho selezionato le prime ${availableSlots} immagini disponibili`);
+    }
+
+    setIsUploadingImages(true);
+    try {
+      const result = selectedFiles.length === 1
+        ? await uploadApi.uploadImage(selectedFiles[0]).then(upload => ({ urls: [upload.url] }))
+        : await uploadApi.uploadImages(selectedFiles);
+      setFormData(prev => ({ ...prev, immagini: [...prev.immagini, ...result.urls].slice(0, MAX_IMAGES) }));
+      toast.success(`${result.urls.length} immagini caricate`);
+    } catch (error: any) {
+      toast.error(error.message || 'Errore durante il caricamento delle immagini');
+    } finally {
+      setIsUploadingImages(false);
+      e.target.value = '';
     }
   };
 
@@ -183,6 +213,7 @@ export function PubblicaPage() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {CARATTERISTICHE.map((car) => (
                     <button
+                      type="button"
                       key={car}
                       onClick={() => toggleCaratteristica(car)}
                       className={`px-3 py-1.5 rounded-full text-sm border ${formData.caratteristiche.includes(car) ? 'bg-[#e74c3c] text-white border-[#e74c3c]' : 'border-gray-300'}`}
@@ -191,6 +222,89 @@ export function PubblicaPage() {
                       {car}
                     </button>
                   ))}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Input
+                    value={customCaratteristica}
+                    onChange={(e) => setCustomCaratteristica(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomCaratteristica();
+                      }
+                    }}
+                    placeholder="Aggiungi caratteristica personalizzata"
+                  />
+                  <Button type="button" variant="outline" onClick={addCustomCaratteristica}>
+                    <Plus className="h-4 w-4 mr-2" />Aggiungi
+                  </Button>
+                </div>
+                {formData.caratteristiche.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {formData.caratteristiche.map((car) => (
+                      <button
+                        key={car}
+                        type="button"
+                        onClick={() => toggleCaratteristica(car)}
+                        className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700 hover:bg-gray-200"
+                      >
+                        {car}<X className="h-3 w-3" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <Label>Classe energetica</Label>
+                  <select
+                    className="mt-2 w-full rounded-lg border px-3 py-2 text-sm"
+                    value={formData.classe_energetica}
+                    onChange={(e) => setFormData({ ...formData, classe_energetica: e.target.value })}
+                  >
+                    <option value="">Non indicata</option>
+                    {CLASSI_ENERGETICHE.map((classe) => (
+                      <option key={classe} value={classe}>{classe}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Stato immobile</Label>
+                  <select
+                    className="mt-2 w-full rounded-lg border px-3 py-2 text-sm"
+                    value={formData.stato}
+                    onChange={(e) => setFormData({ ...formData, stato: e.target.value })}
+                  >
+                    <option value="">Non indicato</option>
+                    {STATI_IMMOBILE.map((stato) => (
+                      <option key={stato.value} value={stato.value}>{stato.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Riscaldamento</Label>
+                  <select
+                    className="mt-2 w-full rounded-lg border px-3 py-2 text-sm"
+                    value={formData.riscaldamento}
+                    onChange={(e) => setFormData({ ...formData, riscaldamento: e.target.value })}
+                  >
+                    <option value="">Non indicato</option>
+                    {RISCALDAMENTO.map((item) => (
+                      <option key={item.value} value={item.value}>{item.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Piano</Label>
+                  <Input type="number" value={formData.piano} onChange={(e) => setFormData({ ...formData, piano: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Anno costruzione</Label>
+                  <Input type="number" value={formData.anno_costruzione} onChange={(e) => setFormData({ ...formData, anno_costruzione: e.target.value })} />
                 </div>
               </div>
             </div>
@@ -202,11 +316,14 @@ export function PubblicaPage() {
                 <Label>Indirizzo completo *</Label>
                 <div className="mt-2">
                   <AddressSearch 
-                    onSelect={(address, coords) => {
+                    onSelect={(address, coords, details) => {
                       setFormData({ 
                         ...formData, 
                         indirizzo: address,
-                        coordinate: coords
+                        coordinate: coords,
+                        citta: details?.citta || formData.citta,
+                        cap: details?.cap || formData.cap,
+                        provincia: details?.provincia || formData.provincia
                       });
                     }}
                     placeholder="Cerca indirizzo..."
@@ -237,8 +354,8 @@ export function PubblicaPage() {
                 </div>
               </div>
               <div>
-                <Label>Immagini ({formData.immagini.length}/10)</Label>
-                <div className="grid grid-cols-5 gap-2 mt-2">
+                <Label>Immagini ({formData.immagini.length}/{MAX_IMAGES})</Label>
+                <div className="grid grid-cols-3 gap-2 mt-2 sm:grid-cols-5">
                   {formData.immagini.map((img, i) => (
                     <div key={i} className="relative aspect-square">
                       <img src={img} alt="" className="w-full h-full object-cover rounded-lg" />
@@ -247,13 +364,20 @@ export function PubblicaPage() {
                       </button>
                     </div>
                   ))}
-                  {formData.immagini.length < 10 && (
+                  {formData.immagini.length < MAX_IMAGES && (
                     <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#e74c3c]">
-                      <Upload className="h-6 w-6 text-gray-400" />
-                      <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
+                      {isUploadingImages ? (
+                        <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#e74c3c] border-t-transparent" />
+                      ) : (
+                        <Upload className="h-6 w-6 text-gray-400" />
+                      )}
+                      <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" disabled={isUploadingImages} />
                     </label>
                   )}
                 </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Puoi caricare fino a {MAX_IMAGES} foto. Selezionandole insieme il caricamento e piu veloce.
+                </p>
               </div>
             </div>
           )}

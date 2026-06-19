@@ -37,6 +37,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 const useObjectStorage = isObjectStorageConfigured();
+const MAX_IMAGES_PER_ANNUNCIO = 30;
 
 const upload = multer({
   storage: useObjectStorage ? multer.memoryStorage() : storage,
@@ -72,7 +73,7 @@ router.post('/image', auth, upload.single('image'), async (req, res) => {
 });
 
 // Upload multiple immagini
-router.post('/images', auth, upload.array('images', 10), async (req, res) => {
+router.post('/images', auth, upload.array('images', MAX_IMAGES_PER_ANNUNCIO), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'Nessun file caricato.' });

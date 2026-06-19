@@ -17,7 +17,14 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [tipo, setTipo] = useState<'utente' | 'amministrazione'>('utente');
   const [formData, setFormData] = useState({
-    nome: '', cognome: '', email: '', telefono: '', password: '', confermaPassword: '', privacyConsent: false
+    nome: '',
+    cognome: '',
+    ragioneSociale: '',
+    email: '',
+    telefono: '',
+    password: '',
+    confermaPassword: '',
+    privacyConsent: false
   });
   const [loading, setLoading] = useState(false);
 
@@ -31,8 +38,21 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
       toast.error('Devi accettare Privacy Policy e Termini di servizio');
       return;
     }
+    if (tipo === 'amministrazione' && !formData.ragioneSociale.trim()) {
+      toast.error('Inserisci il nome dell\'agenzia');
+      return;
+    }
     setLoading(true);
-    const result = await onRegister({ ...formData, tipo });
+    const registerData = tipo === 'amministrazione'
+      ? {
+          ...formData,
+          nome: formData.ragioneSociale,
+          cognome: 'Agenzia',
+          ragioneSociale: formData.ragioneSociale,
+          tipo
+        }
+      : { ...formData, tipo };
+    const result = await onRegister(registerData);
     if (result.success) {
       toast.success('Registrazione completata!');
       navigate('/');
@@ -65,16 +85,28 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
               </TabsList>
             </Tabs>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              {tipo === 'amministrazione' ? (
                 <div>
-                  <Label>Nome *</Label>
-                  <Input value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required />
+                  <Label>Nome agenzia *</Label>
+                  <Input
+                    value={formData.ragioneSociale}
+                    onChange={(e) => setFormData({ ...formData, ragioneSociale: e.target.value })}
+                    placeholder="Es: Immobiliare Modena Centro"
+                    required
+                  />
                 </div>
-                <div>
-                  <Label>Cognome *</Label>
-                  <Input value={formData.cognome} onChange={(e) => setFormData({ ...formData, cognome: e.target.value })} required />
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Nome *</Label>
+                    <Input value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required />
+                  </div>
+                  <div>
+                    <Label>Cognome *</Label>
+                    <Input value={formData.cognome} onChange={(e) => setFormData({ ...formData, cognome: e.target.value })} required />
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <Label>Email *</Label>
                 <div className="relative mt-2">
