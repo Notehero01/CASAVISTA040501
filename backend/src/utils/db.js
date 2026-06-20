@@ -17,6 +17,8 @@ const DB_FILES = {
 
 const TABLES = Object.keys(DB_FILES);
 const usePostgres = Boolean(process.env.DATABASE_URL);
+const LEGACY_ADMIN_EMAIL = 'admin@casavista.it';
+const DEFAULT_ADMIN_EMAIL = 'info@casavista.it';
 
 const pool = usePostgres
   ? new Pool({
@@ -53,6 +55,17 @@ function writeJsonData(table, data) {
 
 function getRecordId(record) {
   return record.id || record.userId || generateId();
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function getAdminEmail() {
+  const configured = normalizeEmail(process.env.ADMIN_EMAIL);
+  return !configured || configured === LEGACY_ADMIN_EMAIL
+    ? DEFAULT_ADMIN_EMAIL
+    : configured;
 }
 
 async function initDatabase() {
@@ -184,9 +197,50 @@ async function upsertRecord(table, record) {
 
 async function initAdmin() {
   const users = await readData('users');
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@casavista.it';
+  const adminEmail = getAdminEmail();
   const adminPassword = process.env.ADMIN_PASSWORD;
-  const adminExists = users.find(u => u.email === adminEmail);
+  const adminExists = users.find(u => normalizeEmail(u.email) === adminEmail);
+  const legacyAdmin = users.find(u =>
+    normalizeEmail(u.email) === LEGACY_ADMIN_EMAIL &&
+    u.tipo === 'admin'
+  );
+  const now = new Date().toISOString();
+  let changed = false;
+
+  if (adminExists) {
+    if (adminExists.tipo !== 'admin' || !adminExists.verified || adminExists.blocked) {
+      adminExists.tipo = 'admin';
+      adminExists.verified = true;
+      adminExists.blocked = false;
+      adminExists.updatedAt = now;
+      changed = true;
+      console.log('Admin promosso:', adminEmail);
+    }
+
+    if (legacyAdmin && legacyAdmin.id !== adminExists.id) {
+      legacyAdmin.tipo = 'utente';
+      legacyAdmin.updatedAt = now;
+      changed = true;
+      console.log('Vecchio admin disattivato:', LEGACY_ADMIN_EMAIL);
+    }
+
+    if (changed) {
+      await writeData('users', users);
+    }
+
+    return;
+  }
+
+  if (legacyAdmin) {
+    legacyAdmin.email = adminEmail;
+    legacyAdmin.tipo = 'admin';
+    legacyAdmin.verified = true;
+    legacyAdmin.blocked = false;
+    legacyAdmin.updatedAt = now;
+    await writeData('users', users);
+    console.log('Admin migrato:', adminEmail);
+    return;
+  }
 
   if (!adminExists && adminPassword) {
     const adminUser = {
@@ -197,8 +251,8 @@ async function initAdmin() {
       cognome: 'CasaVista',
       tipo: 'admin',
       telefono: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
       verified: true
     };
 
