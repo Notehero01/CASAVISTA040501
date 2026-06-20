@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { annunciApi } from '@/utils/api';
 import { usePreferiti } from '@/hooks/usePreferiti';
 import { useConfronto } from '@/hooks/useConfronto';
-import { MapView, AddressSearch } from '@/components/MapView';
+import { MapView, type MapAreaPoint } from '@/components/MapView';
 import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { SEO } from '@/utils/seo';
 import { CLASSI_ENERGETICHE, STATI_IMMOBILE, RISCALDAMENTO, CARATTERISTICHE } from '@/types/annuncio';
@@ -21,8 +21,29 @@ export function CercaPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [drawnArea, setDrawnArea] = useState<MapAreaPoint[]>([]);
   const { isPreferito, togglePreferito } = usePreferiti();
   const { isNelConfronto, toggleConfronto, canAddMore } = useConfronto();
+
+  const emptyFilters = {
+    tipo: '',
+    categoria: '',
+    citta: '',
+    prezzoMin: '',
+    prezzoMax: '',
+    superficieMin: '',
+    superficieMax: '',
+    localiMin: '',
+    camereMin: '',
+    bagniMin: '',
+    stato: '',
+    classeEnergetica: '',
+    riscaldamento: '',
+    annoCostruzioneMin: '',
+    annoCostruzioneMax: '',
+    raggioKm: '',
+    caratteristiche: [] as string[],
+  };
   
   const [filters, setFilters] = useState({
     tipo: searchParams.get('tipo') || '',
@@ -80,32 +101,41 @@ export function CercaPage() {
     fetchAnnunci();
   }, []);
 
-  const fetchAnnunci = async () => {
+  const fetchAnnunci = async (
+    areaOverride?: MapAreaPoint[],
+    filtersOverride = filters,
+    locationOverride = userLocation
+  ) => {
     setLoading(true);
     try {
-      const params: Record<string, string> = {};
-      if (filters.tipo) params.tipo = filters.tipo;
-      if (filters.categoria) params.categoria = filters.categoria;
-      if (filters.citta) params.citta = filters.citta;
-      if (filters.prezzoMin) params.prezzoMin = filters.prezzoMin;
-      if (filters.prezzoMax) params.prezzoMax = filters.prezzoMax;
-      if (filters.superficieMin) params.superficieMin = filters.superficieMin;
-      if (filters.superficieMax) params.superficieMax = filters.superficieMax;
-      if (filters.localiMin) params.localiMin = filters.localiMin;
-      if (filters.camereMin) params.camereMin = filters.camereMin;
-      if (filters.bagniMin) params.bagniMin = filters.bagniMin;
-      if (filters.stato) params.stato = filters.stato;
-      if (filters.classeEnergetica) params.classeEnergetica = filters.classeEnergetica;
-      if (filters.riscaldamento) params.riscaldamento = filters.riscaldamento;
-      if (filters.annoCostruzioneMin) params.annoCostruzioneMin = filters.annoCostruzioneMin;
-      if (filters.annoCostruzioneMax) params.annoCostruzioneMax = filters.annoCostruzioneMax;
-      if (filters.raggioKm && userLocation) {
-        params.raggioKm = filters.raggioKm;
-        params.lat = userLocation.lat.toString();
-        params.lng = userLocation.lng.toString();
+      const activeArea = areaOverride ?? drawnArea;
+      const activeFilters = filtersOverride;
+      const params: Record<string, string> = { limit: '200' };
+      if (activeFilters.tipo) params.tipo = activeFilters.tipo;
+      if (activeFilters.categoria) params.categoria = activeFilters.categoria;
+      if (activeFilters.citta) params.citta = activeFilters.citta;
+      if (activeFilters.prezzoMin) params.prezzoMin = activeFilters.prezzoMin;
+      if (activeFilters.prezzoMax) params.prezzoMax = activeFilters.prezzoMax;
+      if (activeFilters.superficieMin) params.superficieMin = activeFilters.superficieMin;
+      if (activeFilters.superficieMax) params.superficieMax = activeFilters.superficieMax;
+      if (activeFilters.localiMin) params.localiMin = activeFilters.localiMin;
+      if (activeFilters.camereMin) params.camereMin = activeFilters.camereMin;
+      if (activeFilters.bagniMin) params.bagniMin = activeFilters.bagniMin;
+      if (activeFilters.stato) params.stato = activeFilters.stato;
+      if (activeFilters.classeEnergetica) params.classeEnergetica = activeFilters.classeEnergetica;
+      if (activeFilters.riscaldamento) params.riscaldamento = activeFilters.riscaldamento;
+      if (activeFilters.annoCostruzioneMin) params.annoCostruzioneMin = activeFilters.annoCostruzioneMin;
+      if (activeFilters.annoCostruzioneMax) params.annoCostruzioneMax = activeFilters.annoCostruzioneMax;
+      if (activeFilters.raggioKm && locationOverride) {
+        params.raggioKm = activeFilters.raggioKm;
+        params.lat = locationOverride.lat.toString();
+        params.lng = locationOverride.lng.toString();
       }
-      if (filters.caratteristiche.length > 0) {
-        params.caratteristiche = filters.caratteristiche.join(',');
+      if (activeFilters.caratteristiche.length > 0) {
+        params.caratteristiche = activeFilters.caratteristiche.join(',');
+      }
+      if (activeArea.length >= 3) {
+        params.area = JSON.stringify(activeArea);
       }
       
       const data = await annunciApi.getAll(params);
@@ -127,26 +157,22 @@ export function CercaPage() {
   };
 
   const clearFilters = () => {
-    setFilters({
-      tipo: '',
-      categoria: '',
-      citta: '',
-      prezzoMin: '',
-      prezzoMax: '',
-      superficieMin: '',
-      superficieMax: '',
-      localiMin: '',
-      camereMin: '',
-      bagniMin: '',
-      stato: '',
-      classeEnergetica: '',
-      riscaldamento: '',
-      annoCostruzioneMin: '',
-      annoCostruzioneMax: '',
-      raggioKm: '',
-      caratteristiche: [],
-    });
+    setFilters(emptyFilters);
     setUserLocation(null);
+    setDrawnArea([]);
+    fetchAnnunci([], emptyFilters, null);
+  };
+
+  const handleAreaChange = (area: MapAreaPoint[]) => {
+    setDrawnArea(area);
+    setViewMode('map');
+    fetchAnnunci(area);
+
+    if (area.length >= 3) {
+      toast.success('Area applicata alla ricerca');
+    } else {
+      toast.info('Area rimossa');
+    }
   };
 
   return (
@@ -161,7 +187,7 @@ export function CercaPage() {
             <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
               <SlidersHorizontal className="h-4 w-4 mr-2" />Filtri
             </Button>
-            <Button onClick={fetchAnnunci} className="bg-[#e74c3c]"><Search className="h-4 w-4 mr-2" />Cerca</Button>
+            <Button onClick={() => fetchAnnunci()} className="bg-[#e74c3c]"><Search className="h-4 w-4 mr-2" />Cerca</Button>
           </div>
           
           {showFilters && (
@@ -316,8 +342,13 @@ export function CercaPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">{annunci.length} annunci trovati</h1>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{annunci.length} annunci trovati</h1>
+            {drawnArea.length >= 3 && (
+              <p className="mt-1 text-sm text-[#e74c3c]">Filtro area disegnata attivo</p>
+            )}
+          </div>
           <div className="flex gap-2">
             <Button
               variant={viewMode === 'list' ? 'default' : 'outline'}
@@ -343,7 +374,13 @@ export function CercaPage() {
             <div className="w-8 h-8 border-4 border-[#e74c3c] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : viewMode === 'map' ? (
-          <MapView annunci={annunci} height="600px" />
+          <MapView
+            annunci={annunci}
+            height="600px"
+            enableAreaDraw
+            selectedArea={drawnArea}
+            onAreaChange={handleAreaChange}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {annunci.map((a) => (

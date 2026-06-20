@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Bath, Bed, LocateFixed, MapPin, Maximize, Navigation, Search, X, ZoomIn, ZoomOut } from 'lucide-react';
-import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { Bath, Bed, Check, LocateFixed, MapPin, Maximize, Navigation, Pencil, Search, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { CircleMarker, MapContainer, Marker, Polygon, Polyline, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,6 +14,14 @@ interface MapViewProps {
   zoom?: number;
   height?: string;
   showPoi?: boolean;
+  enableAreaDraw?: boolean;
+  selectedArea?: MapAreaPoint[];
+  onAreaChange?: (area: MapAreaPoint[]) => void;
+}
+
+export interface MapAreaPoint {
+  lat: number;
+  lng: number;
 }
 
 interface AddressSearchProps {
@@ -41,6 +49,7 @@ interface Poi {
   type: string;
   label: string;
   color: string;
+  glyph: string;
 }
 
 interface PoiElement {
@@ -65,14 +74,14 @@ const PROVINCE_CODES: Record<string, string> = {
   rimini: 'RN'
 };
 
-const POI_STYLE: Record<string, { label: string; color: string }> = {
-  restaurant: { label: 'Ristorante', color: '#ff6b35' },
-  cafe: { label: 'Caffe', color: '#8b5a2b' },
-  bar: { label: 'Bar', color: '#9b59b6' },
-  pharmacy: { label: 'Farmacia', color: '#e74c3c' },
-  bank: { label: 'Banca', color: '#3498db' },
-  supermarket: { label: 'Supermercato', color: '#27ae60' },
-  hotel: { label: 'Hotel', color: '#f59e0b' },
+const POI_STYLE: Record<string, { label: string; color: string; glyph: string }> = {
+  restaurant: { label: 'Ristorante', color: '#f97316', glyph: 'R' },
+  cafe: { label: 'Caffe', color: '#8b5a2b', glyph: 'C' },
+  bar: { label: 'Bar', color: '#9b59b6', glyph: 'B' },
+  pharmacy: { label: 'Farmacia', color: '#e11d48', glyph: 'F' },
+  bank: { label: 'Banca', color: '#2563eb', glyph: 'B' },
+  supermarket: { label: 'Supermercato', color: '#16a34a', glyph: 'S' },
+  hotel: { label: 'Hotel', color: '#f59e0b', glyph: 'H' },
 };
 
 function formatPrice(annuncio: Annuncio) {
@@ -145,13 +154,29 @@ function createPoiIcon(poi: Poi) {
   return L.divIcon({
     className: 'casavista-poi-marker',
     html: `
-      <div style="width:26px;height:26px;border-radius:999px;background:${poi.color};border:2px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.22);display:flex;align-items:center;justify-content:center;">
-        <span style="width:7px;height:7px;border-radius:999px;background:white;display:block;"></span>
+      <div style="width:30px;height:30px;border-radius:999px;background:${poi.color};border:2px solid #fff;box-shadow:0 4px 12px rgba(15,23,42,.25);display:flex;align-items:center;justify-content:center;color:white;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;font-size:12px;font-weight:800;">
+        ${poi.glyph}
       </div>
     `,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-    popupAnchor: [0, -12],
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -14],
+  });
+}
+
+function createPoiClusterIcon(cluster: { getChildCount: () => number }) {
+  const count = cluster.getChildCount();
+  const size = count > 99 ? 44 : count > 24 ? 38 : 34;
+
+  return L.divIcon({
+    className: 'casavista-poi-cluster-marker',
+    html: `
+      <div style="width:${size}px;height:${size}px;border-radius:999px;background:#ffffff;color:#334155;border:2px solid #cbd5e1;box-shadow:0 5px 16px rgba(15,23,42,.18);display:flex;align-items:center;justify-content:center;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;font-size:12px;">
+        ${count}
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 }
 
@@ -215,7 +240,17 @@ function MapController({ flyTarget, zoomAction }: { flyTarget: [number, number] 
   return null;
 }
 
-function PoiLoader({ enabled, onLoad, onLoading }: { enabled: boolean; onLoad: (pois: Poi[]) => void; onLoading: (loading: boolean) => void }) {
+function PoiLoader({
+  enabled,
+  onLoad,
+  onLoading,
+  onError
+}: {
+  enabled: boolean;
+  onLoad: (pois: Poi[]) => void;
+  onLoading: (loading: boolean) => void;
+  onError: (error: boolean) => void;
+}) {
   const timerRef = useRef<number | null>(null);
 
   const fetchPois = useCallback(
@@ -232,20 +267,22 @@ function PoiLoader({ enabled, onLoad, onLoading }: { enabled: boolean; onLoad: (
         const east = bounds.getEast();
 
         onLoading(true);
+        onError(false);
 
         try {
-          const query = `[out:json][timeout:12];(node["amenity"~"restaurant|cafe|bar|pharmacy|bank|supermarket"](${south},${west},${north},${east});node["tourism"="hotel"](${south},${west},${north},${east}););out body 120;`;
+          const query = `[out:json][timeout:12];(node["amenity"~"restaurant|cafe|bar|pharmacy|bank"](${south},${west},${north},${east});node["shop"="supermarket"](${south},${west},${north},${east});node["tourism"="hotel"](${south},${west},${north},${east}););out body 90;`;
           const response = await fetch('https://overpass-api.de/api/interpreter', {
             method: 'POST',
             body: new URLSearchParams({ data: query }),
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           });
+          if (!response.ok) throw new Error('POI request failed');
           const data = await response.json();
           const parsed = ((data.elements || []) as PoiElement[])
             .filter((item) => item.type === 'node' && item.tags?.name)
             .map((item) => {
-              const type = item.tags?.amenity || item.tags?.tourism || 'poi';
-              const style = POI_STYLE[type] || { label: 'Luogo', color: '#64748b' };
+              const type = item.tags?.amenity || item.tags?.shop || item.tags?.tourism || 'poi';
+              const style = POI_STYLE[type] || { label: 'Luogo', color: '#64748b', glyph: 'P' };
 
               return {
                 id: item.id,
@@ -255,17 +292,19 @@ function PoiLoader({ enabled, onLoad, onLoading }: { enabled: boolean; onLoad: (
                 type,
                 ...style,
               };
-            });
+            })
+            .slice(0, 90);
 
           onLoad(parsed);
         } catch {
           onLoad([]);
+          onError(true);
         } finally {
           onLoading(false);
         }
       }, 600);
     },
-    [enabled, onLoad, onLoading],
+    [enabled, onError, onLoad, onLoading],
   );
 
   const map = useMapEvents({
@@ -279,6 +318,17 @@ function PoiLoader({ enabled, onLoad, onLoading }: { enabled: boolean; onLoad: (
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
   }, [fetchPois, map]);
+
+  return null;
+}
+
+function AreaDrawEvents({ enabled, onPoint }: { enabled: boolean; onPoint: (point: MapAreaPoint) => void }) {
+  useMapEvents({
+    click: (event) => {
+      if (!enabled) return;
+      onPoint({ lat: event.latlng.lat, lng: event.latlng.lng });
+    }
+  });
 
   return null;
 }
@@ -336,24 +386,64 @@ function PropertyPopup({ annuncio, onAnnuncioClick }: { annuncio: Annuncio; onAn
   );
 }
 
-export function MapView({ annunci, onAnnuncioClick, center, zoom = 12, height = '500px', showPoi = true }: MapViewProps) {
+export function MapView({
+  annunci,
+  onAnnuncioClick,
+  center,
+  zoom = 12,
+  height = '500px',
+  showPoi = true,
+  enableAreaDraw = false,
+  selectedArea = [],
+  onAreaChange
+}: MapViewProps) {
   const [isSatellite, setIsSatellite] = useState(false);
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
   const [zoomAction, setZoomAction] = useState<'in' | 'out' | null>(null);
   const [searchText, setSearchText] = useState('');
   const [poiList, setPoiList] = useState<Poi[]>([]);
   const [poiLoading, setPoiLoading] = useState(false);
+  const [poiError, setPoiError] = useState(false);
+  const [isDrawingArea, setIsDrawingArea] = useState(false);
+  const [draftArea, setDraftArea] = useState<MapAreaPoint[]>(selectedArea);
 
   const annunciConCoordinate = useMemo(() => annunci.filter((annuncio) => annuncio.coordinate), [annunci]);
+  const areaPositions = useMemo(() => draftArea.map((point) => [point.lat, point.lng] as [number, number]), [draftArea]);
+  const hasAppliedArea = selectedArea.length >= 3;
   const mapCenter: [number, number] = center
     ? [center.lat, center.lng]
     : annunciConCoordinate[0]?.coordinate
       ? [annunciConCoordinate[0].coordinate.lat, annunciConCoordinate[0].coordinate.lng]
       : DEFAULT_CENTER;
 
+  useEffect(() => {
+    if (!isDrawingArea) setDraftArea(selectedArea);
+  }, [isDrawingArea, selectedArea]);
+
   const triggerZoom = (action: 'in' | 'out') => {
     setZoomAction(action);
     window.setTimeout(() => setZoomAction(null), 80);
+  };
+
+  const startAreaDraw = () => {
+    setDraftArea([]);
+    setIsDrawingArea(true);
+  };
+
+  const addAreaPoint = useCallback((point: MapAreaPoint) => {
+    setDraftArea((current) => [...current, point]);
+  }, []);
+
+  const applyArea = () => {
+    if (draftArea.length < 3) return;
+    setIsDrawingArea(false);
+    onAreaChange?.(draftArea);
+  };
+
+  const clearArea = () => {
+    setIsDrawingArea(false);
+    setDraftArea([]);
+    onAreaChange?.([]);
   };
 
   const searchAddress = async () => {
@@ -401,6 +491,57 @@ export function MapView({ annunci, onAnnuncioClick, center, zoom = 12, height = 
         </button>
       </div>
 
+      {enableAreaDraw && (
+        <div className="absolute left-3 right-3 top-16 z-[600] flex flex-wrap gap-2 sm:left-4 sm:right-auto sm:max-w-xl">
+          {!isDrawingArea ? (
+            <button
+              type="button"
+              onClick={startAreaDraw}
+              className={`inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold shadow-lg ${
+                hasAppliedArea ? 'bg-[#e74c3c] text-white' : 'border border-gray-200 bg-white text-gray-800'
+              }`}
+            >
+              <Pencil className="h-4 w-4" />
+              {hasAppliedArea ? 'Modifica zona' : 'Disegna zona'}
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-white p-2 text-sm text-gray-700 shadow-lg">
+              <span className="px-2 font-medium">
+                Clicca sulla mappa: {draftArea.length} punti
+              </span>
+              <button
+                type="button"
+                onClick={applyArea}
+                disabled={draftArea.length < 3}
+                className="inline-flex h-9 items-center gap-2 rounded-full bg-[#e74c3c] px-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Check className="h-4 w-4" />
+                Applica area
+              </button>
+              <button
+                type="button"
+                onClick={clearArea}
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-gray-200 px-3 font-semibold text-gray-700"
+              >
+                <X className="h-4 w-4" />
+                Annulla
+              </button>
+            </div>
+          )}
+
+          {hasAppliedArea && !isDrawingArea && (
+            <button
+              type="button"
+              onClick={clearArea}
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-lg"
+            >
+              <Trash2 className="h-4 w-4" />
+              Cancella area
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="absolute right-3 top-3 z-[600] hidden flex-col gap-2 sm:flex">
         <button
           type="button"
@@ -438,7 +579,7 @@ export function MapView({ annunci, onAnnuncioClick, center, zoom = 12, height = 
 
       {showPoi && (
         <div className="absolute bottom-4 left-4 z-[600] rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-lg">
-          {poiLoading ? 'Carico luoghi...' : `${poiList.length} luoghi vicini`}
+          {poiLoading ? 'Carico luoghi vicini...' : poiError ? 'Luoghi non caricati' : `${poiList.length} luoghi vicini`}
         </div>
       )}
 
@@ -465,7 +606,30 @@ export function MapView({ annunci, onAnnuncioClick, center, zoom = 12, height = 
 
         <FitMapToContent annunci={annunciConCoordinate} center={center} zoom={zoom} />
         <MapController flyTarget={flyTarget} zoomAction={zoomAction} />
-        {showPoi && <PoiLoader enabled={showPoi} onLoad={setPoiList} onLoading={setPoiLoading} />}
+        <AreaDrawEvents enabled={enableAreaDraw && isDrawingArea} onPoint={addAreaPoint} />
+        {areaPositions.length >= 2 && (
+          <Polyline positions={areaPositions} pathOptions={{ color: '#e74c3c', weight: 3, dashArray: isDrawingArea ? '8 8' : undefined }} />
+        )}
+        {areaPositions.length >= 3 && (
+          <Polygon
+            positions={areaPositions}
+            pathOptions={{
+              color: '#e74c3c',
+              fillColor: '#e74c3c',
+              fillOpacity: 0.16,
+              weight: 3
+            }}
+          />
+        )}
+        {draftArea.map((point, index) => (
+          <CircleMarker
+            key={`area-point-${index}-${point.lat}-${point.lng}`}
+            center={[point.lat, point.lng]}
+            radius={6}
+            pathOptions={{ color: '#ffffff', fillColor: '#e74c3c', fillOpacity: 1, weight: 2 }}
+          />
+        ))}
+        {showPoi && <PoiLoader enabled={showPoi} onLoad={setPoiList} onLoading={setPoiLoading} onError={setPoiError} />}
 
         <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} spiderfyOnMaxZoom iconCreateFunction={createClusterIcon}>
           {annunciConCoordinate.map((annuncio) => (
@@ -482,17 +646,20 @@ export function MapView({ annunci, onAnnuncioClick, center, zoom = 12, height = 
           ))}
         </MarkerClusterGroup>
 
-        {showPoi &&
-          poiList.map((poi) => (
-            <Marker key={`poi-${poi.id}`} position={[poi.lat, poi.lon]} icon={createPoiIcon(poi)}>
-              <Popup closeButton={false}>
-                <div className="min-w-40 p-2">
-                  <p className="text-sm font-semibold text-gray-900">{poi.name}</p>
-                  <p className="text-xs text-gray-500">{poi.label}</p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+        {showPoi && poiList.length > 0 && (
+          <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} spiderfyOnMaxZoom maxClusterRadius={45} iconCreateFunction={createPoiClusterIcon}>
+            {poiList.map((poi) => (
+              <Marker key={`poi-${poi.id}`} position={[poi.lat, poi.lon]} icon={createPoiIcon(poi)}>
+                <Popup closeButton={false}>
+                  <div className="min-w-40 p-2">
+                    <p className="text-sm font-semibold text-gray-900">{poi.name}</p>
+                    <p className="text-xs text-gray-500">{poi.label}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
+        )}
       </MapContainer>
     </div>
   );

@@ -28,6 +28,42 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+function parseAreaPolygon(area) {
+  if (!area) return null;
+
+  try {
+    const parsed = typeof area === 'string' ? JSON.parse(area) : area;
+    if (!Array.isArray(parsed) || parsed.length < 3 || parsed.length > 80) return null;
+
+    const points = parsed
+      .map(point => ({ lat: Number(point.lat), lng: Number(point.lng) }))
+      .filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+
+    return points.length >= 3 ? points : null;
+  } catch {
+    return null;
+  }
+}
+
+function pointInPolygon(point, polygon) {
+  const x = point.lng;
+  const y = point.lat;
+  let inside = false;
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lng;
+    const yi = polygon[i].lat;
+    const xj = polygon[j].lng;
+    const yj = polygon[j].lat;
+    const intersects = ((yi > y) !== (yj > y)) &&
+      (x < ((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON) + xi);
+
+    if (intersects) inside = !inside;
+  }
+
+  return inside;
+}
+
 function isPublicAnnuncio(annuncio) {
   const status = annuncio.moderationStatus || 'published';
   return !annuncio.deletedAt && status === 'published';
@@ -105,6 +141,7 @@ router.get('/', async (req, res) => {
       lat,
       lng,
       raggioKm,
+      area,
       page = 1,
       limit = 20
     } = req.query;
@@ -152,6 +189,21 @@ router.get('/', async (req, res) => {
     }
 
     // Ordina per data (più recenti prima)
+    if (area) {
+      const areaPolygon = parseAreaPolygon(area);
+
+      if (!areaPolygon) {
+        return res.status(400).json({ message: 'Area disegnata non valida.' });
+      }
+
+      annunci = annunci.filter(a =>
+        a.coordinate &&
+        Number.isFinite(Number(a.coordinate.lat)) &&
+        Number.isFinite(Number(a.coordinate.lng)) &&
+        pointInPolygon({ lat: Number(a.coordinate.lat), lng: Number(a.coordinate.lng) }, areaPolygon)
+      );
+    }
+
     annunci.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     // Pagination
