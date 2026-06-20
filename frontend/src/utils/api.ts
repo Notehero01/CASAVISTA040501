@@ -116,6 +116,21 @@ export const contactApi = {
     })
 };
 
+// Valutazioni API
+export const valutazioniApi = {
+  getZone: (citta = 'Modena') =>
+    api<any>(`/valutazioni/zone?${new URLSearchParams({ citta }).toString()}`, {
+      auth: false
+    }),
+
+  stima: (data: any) =>
+    api<any>('/valutazioni/stima', {
+      method: 'POST',
+      body: data,
+      auth: false
+    })
+};
+
 // Chat API
 export const chatApi = {
   getConversations: () => api<any[]>('/chat/conversations'),

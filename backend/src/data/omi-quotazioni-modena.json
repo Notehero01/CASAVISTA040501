@@ -1,0 +1,124 @@
+{
+  "version": "modena-seed-2026-06",
+  "sourceName": "Agenzia Entrate - OMI",
+  "sourceUrl": "https://www.agenziaentrate.gov.it/portale/web/guest/schede/fabbricatiterreni/omi/forniture-dati-omi",
+  "semester": "Da aggiornare con fornitura ufficiale OMI",
+  "isOfficialImport": false,
+  "datasetNote": "Dataset iniziale CasaVista per avviare il motore di stima su Modena. La struttura e' pronta per importare la fornitura ufficiale OMI dell'Agenzia Entrate.",
+  "currency": "EUR",
+  "unit": "mq",
+  "comuni": [
+    {
+      "comune": "Modena",
+      "provincia": "MO",
+      "defaultZoneId": "modena-generica",
+      "zones": [
+        {
+          "id": "modena-centro-storico",
+          "label": "Centro storico",
+          "zoneCode": "Centro",
+          "quotazioni": {
+            "appartamento": { "min": 2500, "max": 3900 },
+            "casa": { "min": 2300, "max": 3400 },
+            "villa": { "min": 3100, "max": 4800 },
+            "ufficio": { "min": 1700, "max": 2600 },
+            "negozio": { "min": 1900, "max": 3400 },
+            "terreno": { "min": 280, "max": 620 }
+          }
+        },
+        {
+          "id": "modena-buon-pastore-viali",
+          "label": "Buon Pastore / Viali / Musicisti",
+          "zoneCode": "Semicentrale",
+          "quotazioni": {
+            "appartamento": { "min": 2200, "max": 3500 },
+            "casa": { "min": 2100, "max": 3200 },
+            "villa": { "min": 2900, "max": 4500 },
+            "ufficio": { "min": 1500, "max": 2400 },
+            "negozio": { "min": 1600, "max": 3000 },
+            "terreno": { "min": 240, "max": 560 }
+          }
+        },
+        {
+          "id": "modena-santagnese-morane",
+          "label": "Sant'Agnese / Morane / Universita",
+          "zoneCode": "Semicentrale sud",
+          "quotazioni": {
+            "appartamento": { "min": 2100, "max": 3300 },
+            "casa": { "min": 2000, "max": 3100 },
+            "villa": { "min": 2800, "max": 4300 },
+            "ufficio": { "min": 1400, "max": 2300 },
+            "negozio": { "min": 1500, "max": 2800 },
+            "terreno": { "min": 220, "max": 520 }
+          }
+        },
+        {
+          "id": "modena-san-faustino-madonnina",
+          "label": "San Faustino / Madonnina / Villaggio Giardino",
+          "zoneCode": "Semicentrale ovest",
+          "quotazioni": {
+            "appartamento": { "min": 1850, "max": 3000 },
+            "casa": { "min": 1750, "max": 2850 },
+            "villa": { "min": 2500, "max": 3900 },
+            "ufficio": { "min": 1250, "max": 2100 },
+            "negozio": { "min": 1300, "max": 2500 },
+            "terreno": { "min": 190, "max": 470 }
+          }
+        },
+        {
+          "id": "modena-crocetta-sacca",
+          "label": "Crocetta / Sacca / Torrazzi",
+          "zoneCode": "Periferica nord",
+          "quotazioni": {
+            "appartamento": { "min": 1500, "max": 2500 },
+            "casa": { "min": 1450, "max": 2450 },
+            "villa": { "min": 2200, "max": 3500 },
+            "ufficio": { "min": 1000, "max": 1800 },
+            "negozio": { "min": 1050, "max": 2200 },
+            "terreno": { "min": 160, "max": 420 }
+          }
+        },
+        {
+          "id": "modena-cognento-baggiovara-vaciglio",
+          "label": "Cognento / Baggiovara / Vaciglio",
+          "zoneCode": "Prima periferia qualificata",
+          "quotazioni": {
+            "appartamento": { "min": 2150, "max": 3600 },
+            "casa": { "min": 2100, "max": 3400 },
+            "villa": { "min": 3100, "max": 5200 },
+            "ufficio": { "min": 1400, "max": 2300 },
+            "negozio": { "min": 1400, "max": 2600 },
+            "terreno": { "min": 240, "max": 600 }
+          }
+        },
+        {
+          "id": "modena-frazioni",
+          "label": "Frazioni / San Damaso / San Donnino",
+          "zoneCode": "Frazioni",
+          "quotazioni": {
+            "appartamento": { "min": 1450, "max": 2400 },
+            "casa": { "min": 1500, "max": 2500 },
+            "villa": { "min": 2100, "max": 3400 },
+            "ufficio": { "min": 950, "max": 1700 },
+            "negozio": { "min": 950, "max": 1900 },
+            "terreno": { "min": 150, "max": 400 }
+          }
+        },
+        {
+          "id": "modena-generica",
+          "label": "Modena - media cittadina",
+          "zoneCode": "Media comunale",
+          "isFallback": true,
+          "quotazioni": {
+            "appartamento": { "min": 1800, "max": 3200 },
+            "casa": { "min": 1700, "max": 3000 },
+            "villa": { "min": 2400, "max": 4300 },
+            "ufficio": { "min": 1200, "max": 2300 },
+            "negozio": { "min": 1300, "max": 2800 },
+            "terreno": { "min": 180, "max": 520 }
+          }
+        }
+      ]
+    }
+  ]
+}

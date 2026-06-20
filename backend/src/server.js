@@ -21,6 +21,7 @@ const amministrazioniRoutes = require('./routes/amministrazioni');
 const uploadRoutes = require('./routes/upload');
 const adminRoutes = require('./routes/admin');
 const contactRoutes = require('./routes/contact');
+const valutazioniRoutes = require('./routes/valutazioni');
 
 const productionOrigins = (process.env.CLIENT_ORIGIN || 'https://casavista.it,https://www.casavista.it')
   .split(',')
@@ -105,6 +106,7 @@ app.use('/api/amministrazioni', amministrazioniRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/valutazioni', valutazioniRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
