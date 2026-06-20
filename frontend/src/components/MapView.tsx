@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { Bath, Bed, Check, LocateFixed, MapPin, Maximize, Navigation, Pencil, Search, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { CircleMarker, MapContainer, Marker, Polygon, Polyline, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -335,6 +335,51 @@ function AreaDrawEvents({ enabled, onPoint }: { enabled: boolean; onPoint: (poin
   return null;
 }
 
+function MapReady({ onReady }: { onReady: (map: L.Map | null) => void }) {
+  const map = useMap();
+
+  useEffect(() => {
+    onReady(map);
+    return () => onReady(null);
+  }, [map, onReady]);
+
+  return null;
+}
+
+function DrawingInteractionLock({ enabled }: { enabled: boolean }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const previousCursor = container.style.cursor;
+
+    if (!enabled) {
+      container.style.cursor = previousCursor;
+      return undefined;
+    }
+
+    map.dragging.disable();
+    map.doubleClickZoom.disable();
+    map.scrollWheelZoom.disable();
+    map.boxZoom.disable();
+    map.keyboard.disable();
+    map.touchZoom.disable();
+    container.style.cursor = 'crosshair';
+
+    return () => {
+      map.dragging.enable();
+      map.doubleClickZoom.enable();
+      map.scrollWheelZoom.enable();
+      map.boxZoom.enable();
+      map.keyboard.enable();
+      map.touchZoom.enable();
+      container.style.cursor = previousCursor;
+    };
+  }, [enabled, map]);
+
+  return null;
+}
+
 function ControlButton({ children, label, onClick }: { children: ReactNode; label: string; onClick: () => void }) {
   return (
     <button
@@ -408,6 +453,7 @@ export function MapView({
   const [poiError, setPoiError] = useState(false);
   const [isDrawingArea, setIsDrawingArea] = useState(false);
   const [draftArea, setDraftArea] = useState<MapAreaPoint[]>(selectedArea);
+  const [leafletMap, setLeafletMap] = useState<L.Map | null>(null);
 
   const annunciConCoordinate = useMemo(() => annunci.filter((annuncio) => annuncio.coordinate), [annunci]);
   const areaPositions = useMemo(() => draftArea.map((point) => [point.lat, point.lng] as [number, number]), [draftArea]);
@@ -452,6 +498,19 @@ export function MapView({
     onAreaChange?.([]);
   };
 
+  const handleDrawPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!leafletMap || !isDrawingArea) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const containerRect = leafletMap.getContainer().getBoundingClientRect();
+    const point = L.point(event.clientX - containerRect.left, event.clientY - containerRect.top);
+    const latLng = leafletMap.containerPointToLatLng(point);
+    addAreaPoint({ lat: latLng.lat, lng: latLng.lng });
+  };
+
   const searchAddress = async () => {
     const query = searchText.trim();
     if (query.length < 3) return;
@@ -471,7 +530,7 @@ export function MapView({
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm" style={{ height }}>
-      <div className="absolute left-3 right-3 top-3 z-[600] flex max-w-md gap-2 sm:left-4 sm:right-auto sm:w-96">
+      <div className="absolute left-3 right-3 top-3 z-[900] flex max-w-md gap-2 sm:left-4 sm:right-auto sm:w-96">
         <div className="flex h-11 flex-1 items-center rounded-full border border-gray-200 bg-white px-4 shadow-lg">
           <Search className="h-4 w-4 shrink-0 text-gray-400" />
           <input
@@ -498,7 +557,7 @@ export function MapView({
       </div>
 
       {enableAreaDraw && (
-        <div className="absolute left-3 right-3 top-16 z-[600] flex flex-wrap gap-2 sm:left-4 sm:right-auto sm:max-w-xl">
+        <div className="absolute left-3 right-3 top-16 z-[900] flex flex-wrap gap-2 sm:left-4 sm:right-auto sm:max-w-xl">
           {!isDrawingArea ? (
             <button
               type="button"
@@ -556,7 +615,15 @@ export function MapView({
         </div>
       )}
 
-      <div className="absolute right-3 top-3 z-[600] hidden flex-col gap-2 sm:flex">
+      {enableAreaDraw && isDrawingArea && (
+        <div
+          className="absolute inset-0 z-[800] cursor-crosshair touch-none"
+          aria-label="Area di disegno sulla mappa"
+          onPointerDown={handleDrawPointerDown}
+        />
+      )}
+
+      <div className="absolute right-3 top-3 z-[900] hidden flex-col gap-2 sm:flex">
         <button
           type="button"
           onClick={() => setIsSatellite(false)}
@@ -573,7 +640,7 @@ export function MapView({
         </button>
       </div>
 
-      <div className="absolute bottom-4 right-4 z-[600] flex flex-col gap-2">
+      <div className="absolute bottom-4 right-4 z-[900] flex flex-col gap-2">
         <ControlButton label="Zoom avanti" onClick={() => triggerZoom('in')}>
           <ZoomIn className="h-5 w-5" />
         </ControlButton>
@@ -592,7 +659,7 @@ export function MapView({
       </div>
 
       {showPoi && (
-        <div className="absolute bottom-4 left-4 z-[600] max-w-[calc(100%-5.5rem)] truncate rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-lg">
+        <div className={`absolute bottom-4 left-4 z-[900] max-w-[calc(100%-5.5rem)] truncate rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-lg ${isDrawingArea ? 'hidden sm:block' : ''}`}>
           {poiLoading ? 'Carico luoghi vicini...' : poiError ? 'Luoghi non caricati' : `${poiList.length} luoghi vicini`}
         </div>
       )}
@@ -619,6 +686,8 @@ export function MapView({
         )}
 
         <FitMapToContent annunci={annunciConCoordinate} center={center} zoom={zoom} />
+        <MapReady onReady={setLeafletMap} />
+        <DrawingInteractionLock enabled={enableAreaDraw && isDrawingArea} />
         <MapController flyTarget={flyTarget} zoomAction={zoomAction} />
         <AreaDrawEvents enabled={enableAreaDraw && isDrawingArea} onPoint={addAreaPoint} />
         {areaPositions.length >= 2 && (
@@ -643,24 +712,26 @@ export function MapView({
             pathOptions={{ color: '#ffffff', fillColor: AREA_STROKE, fillOpacity: 1, weight: 2 }}
           />
         ))}
-        {showPoi && <PoiLoader enabled={showPoi} onLoad={setPoiList} onLoading={setPoiLoading} onError={setPoiError} />}
+        {showPoi && !isDrawingArea && <PoiLoader enabled={showPoi} onLoad={setPoiList} onLoading={setPoiLoading} onError={setPoiError} />}
 
-        <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} spiderfyOnMaxZoom iconCreateFunction={createClusterIcon}>
-          {annunciConCoordinate.map((annuncio) => (
-            <Marker
-              key={annuncio.id}
-              position={[annuncio.coordinate!.lat, annuncio.coordinate!.lng]}
-              icon={createAnnuncioIcon(annuncio.tipo)}
-              eventHandlers={{ click: () => onAnnuncioClick?.(annuncio) }}
-            >
-              <Popup closeButton={false} minWidth={260}>
-                <PropertyPopup annuncio={annuncio} onAnnuncioClick={onAnnuncioClick} />
-              </Popup>
-            </Marker>
-          ))}
-        </MarkerClusterGroup>
+        {!isDrawingArea && (
+          <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} spiderfyOnMaxZoom iconCreateFunction={createClusterIcon}>
+            {annunciConCoordinate.map((annuncio) => (
+              <Marker
+                key={annuncio.id}
+                position={[annuncio.coordinate!.lat, annuncio.coordinate!.lng]}
+                icon={createAnnuncioIcon(annuncio.tipo)}
+                eventHandlers={{ click: () => onAnnuncioClick?.(annuncio) }}
+              >
+                <Popup closeButton={false} minWidth={260}>
+                  <PropertyPopup annuncio={annuncio} onAnnuncioClick={onAnnuncioClick} />
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
+        )}
 
-        {showPoi && poiList.length > 0 && (
+        {showPoi && !isDrawingArea && poiList.length > 0 && (
           <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} spiderfyOnMaxZoom maxClusterRadius={45} iconCreateFunction={createPoiClusterIcon}>
             {poiList.map((poi) => (
               <Marker key={`poi-${poi.id}`} position={[poi.lat, poi.lon]} icon={createPoiIcon(poi)}>
