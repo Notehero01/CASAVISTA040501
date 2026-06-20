@@ -62,6 +62,8 @@ interface PoiElement {
 
 const DEFAULT_CENTER: [number, number] = [44.6471, 10.9252]; // Modena
 const MODENA_VIEWBOX = '10.73,44.78,11.08,44.49';
+const AREA_STROKE = '#c026d3';
+const AREA_FILL = '#d946ef';
 const PROVINCE_CODES: Record<string, string> = {
   modena: 'MO',
   bologna: 'BO',
@@ -426,13 +428,17 @@ export function MapView({
   };
 
   const startAreaDraw = () => {
-    setDraftArea([]);
+    setDraftArea(hasAppliedArea ? selectedArea : []);
     setIsDrawingArea(true);
   };
 
   const addAreaPoint = useCallback((point: MapAreaPoint) => {
     setDraftArea((current) => [...current, point]);
   }, []);
+
+  const undoAreaPoint = () => {
+    setDraftArea((current) => current.slice(0, -1));
+  };
 
   const applyArea = () => {
     if (draftArea.length < 3) return;
@@ -497,23 +503,31 @@ export function MapView({
             <button
               type="button"
               onClick={startAreaDraw}
-              className={`inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold shadow-lg ${
-                hasAppliedArea ? 'bg-[#e74c3c] text-white' : 'border border-gray-200 bg-white text-gray-800'
+              className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold shadow-lg ${
+                hasAppliedArea ? 'bg-fuchsia-600 text-white' : 'border border-fuchsia-200 bg-white text-fuchsia-700'
               }`}
             >
               <Pencil className="h-4 w-4" />
-              {hasAppliedArea ? 'Modifica zona' : 'Disegna zona'}
+              {hasAppliedArea ? 'Modifica zona' : 'Disegna la tua zona'}
             </button>
           ) : (
-            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-white p-2 text-sm text-gray-700 shadow-lg">
-              <span className="px-2 font-medium">
-                Clicca sulla mappa: {draftArea.length} punti
+            <div className="flex w-full flex-wrap items-center gap-2 rounded-2xl border border-fuchsia-100 bg-white/95 p-2 text-sm text-gray-700 shadow-lg backdrop-blur sm:w-auto">
+              <span className="min-w-0 flex-1 px-2 font-medium sm:flex-none">
+                Tocca la mappa: {draftArea.length} punti
               </span>
+              <button
+                type="button"
+                onClick={undoAreaPoint}
+                disabled={draftArea.length === 0}
+                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-gray-200 px-3 font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Indietro
+              </button>
               <button
                 type="button"
                 onClick={applyArea}
                 disabled={draftArea.length < 3}
-                className="inline-flex h-9 items-center gap-2 rounded-full bg-[#e74c3c] px-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-10 items-center gap-2 rounded-full bg-fuchsia-600 px-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Check className="h-4 w-4" />
                 Applica area
@@ -521,7 +535,7 @@ export function MapView({
               <button
                 type="button"
                 onClick={clearArea}
-                className="inline-flex h-9 items-center gap-2 rounded-full border border-gray-200 px-3 font-semibold text-gray-700"
+                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-gray-200 px-3 font-semibold text-gray-700"
               >
                 <X className="h-4 w-4" />
                 Annulla
@@ -533,10 +547,10 @@ export function MapView({
             <button
               type="button"
               onClick={clearArea}
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-lg"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-lg"
             >
               <Trash2 className="h-4 w-4" />
-              Cancella area
+              Cancella zona
             </button>
           )}
         </div>
@@ -578,7 +592,7 @@ export function MapView({
       </div>
 
       {showPoi && (
-        <div className="absolute bottom-4 left-4 z-[600] rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-lg">
+        <div className="absolute bottom-4 left-4 z-[600] max-w-[calc(100%-5.5rem)] truncate rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-lg">
           {poiLoading ? 'Carico luoghi vicini...' : poiError ? 'Luoghi non caricati' : `${poiList.length} luoghi vicini`}
         </div>
       )}
@@ -608,16 +622,16 @@ export function MapView({
         <MapController flyTarget={flyTarget} zoomAction={zoomAction} />
         <AreaDrawEvents enabled={enableAreaDraw && isDrawingArea} onPoint={addAreaPoint} />
         {areaPositions.length >= 2 && (
-          <Polyline positions={areaPositions} pathOptions={{ color: '#e74c3c', weight: 3, dashArray: isDrawingArea ? '8 8' : undefined }} />
+          <Polyline positions={areaPositions} pathOptions={{ color: AREA_STROKE, weight: 4, dashArray: isDrawingArea ? '8 8' : undefined }} />
         )}
         {areaPositions.length >= 3 && (
           <Polygon
             positions={areaPositions}
             pathOptions={{
-              color: '#e74c3c',
-              fillColor: '#e74c3c',
-              fillOpacity: 0.16,
-              weight: 3
+              color: AREA_STROKE,
+              fillColor: AREA_FILL,
+              fillOpacity: 0.18,
+              weight: 4
             }}
           />
         )}
@@ -625,8 +639,8 @@ export function MapView({
           <CircleMarker
             key={`area-point-${index}-${point.lat}-${point.lng}`}
             center={[point.lat, point.lng]}
-            radius={6}
-            pathOptions={{ color: '#ffffff', fillColor: '#e74c3c', fillOpacity: 1, weight: 2 }}
+            radius={7}
+            pathOptions={{ color: '#ffffff', fillColor: AREA_STROKE, fillOpacity: 1, weight: 2 }}
           />
         ))}
         {showPoi && <PoiLoader enabled={showPoi} onLoad={setPoiList} onLoading={setPoiLoading} onError={setPoiError} />}

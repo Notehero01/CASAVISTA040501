@@ -179,15 +179,15 @@ export function CercaPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b sticky top-16 z-40">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <div className="flex-1 relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input placeholder="Città" value={filters.citta} onChange={(e) => setFilters({ ...filters, citta: e.target.value })} className="pl-10" />
             </div>
-            <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
+            <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="w-full sm:w-auto">
               <SlidersHorizontal className="h-4 w-4 mr-2" />Filtri
             </Button>
-            <Button onClick={() => fetchAnnunci()} className="bg-[#e74c3c]"><Search className="h-4 w-4 mr-2" />Cerca</Button>
+            <Button onClick={() => fetchAnnunci()} className="w-full bg-[#e74c3c] sm:w-auto"><Search className="h-4 w-4 mr-2" />Cerca</Button>
           </div>
           
           {showFilters && (
@@ -346,10 +346,10 @@ export function CercaPage() {
           <div>
             <h1 className="text-2xl font-bold">{annunci.length} annunci trovati</h1>
             {drawnArea.length >= 3 && (
-              <p className="mt-1 text-sm text-[#e74c3c]">Filtro area disegnata attivo</p>
+              <p className="mt-1 text-sm text-fuchsia-700">Filtro area disegnata attivo</p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex">
             <Button
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"
@@ -376,7 +376,7 @@ export function CercaPage() {
         ) : viewMode === 'map' ? (
           <MapView
             annunci={annunci}
-            height="600px"
+            height="clamp(500px, 72vh, 680px)"
             enableAreaDraw
             selectedArea={drawnArea}
             onAreaChange={handleAreaChange}
