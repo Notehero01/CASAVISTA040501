@@ -47,6 +47,7 @@ interface SEOProps {
   image?: string;
   url?: string;
   type?: string;
+  structuredData?: Record<string, any> | Record<string, any>[];
 }
 
 export function SEO({ 
@@ -54,7 +55,8 @@ export function SEO({
   description = 'Trova la casa dei tuoi sogni su CasaVista. Migliaia di annunci immobiliari gratuiti di case e appartamenti in vendita e in affitto.',
   image = 'https://casavista.it/og-image.jpg',
   url = 'https://casavista.it',
-  type = 'website'
+  type = 'website',
+  structuredData
 }: SEOProps) {
   useEffect(() => {
     // Title
@@ -94,10 +96,22 @@ export function SEO({
     }
     canonical.href = url;
 
+    const scriptId = 'casavista-structured-data';
+    const existingScript = document.getElementById(scriptId);
+    if (existingScript) existingScript.remove();
+
+    if (structuredData) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(Array.isArray(structuredData) ? structuredData : structuredData);
+      document.head.appendChild(script);
+    }
+
     return () => {
       // Cleanup opzionale
     };
-  }, [title, description, image, url, type]);
+  }, [title, description, image, url, type, structuredData]);
 
   return null;
 }

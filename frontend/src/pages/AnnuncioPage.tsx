@@ -20,6 +20,19 @@ interface AnnuncioPageProps {
   onStartChat: (annuncio: Annuncio) => Promise<string>;
 }
 
+function getPropertySchemaType(categoria: Annuncio['categoria']) {
+  const schemaTypes: Record<Annuncio['categoria'], string> = {
+    appartamento: 'Apartment',
+    casa: 'House',
+    villa: 'House',
+    ufficio: 'Place',
+    negozio: 'Store',
+    terreno: 'Landform'
+  };
+
+  return schemaTypes[categoria] || 'Accommodation';
+}
+
 export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -190,6 +203,52 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   const metaTitle = generateMetaTitle(annuncio);
   const metaDescription = generateMetaDescription(annuncio);
   const canonicalUrl = `https://casavista.it/annuncio/${annuncio.slug || slug}`;
+  const annuncioStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Offer',
+    name: annuncio.titolo,
+    description: annuncio.descrizione,
+    url: canonicalUrl,
+    price: annuncio.prezzo,
+    priceCurrency: 'EUR',
+    availability: 'https://schema.org/InStock',
+    businessFunction: annuncio.tipo === 'affitto'
+      ? 'http://purl.org/goodrelations/v1#LeaseOut'
+      : 'http://purl.org/goodrelations/v1#Sell',
+    image: immagini,
+    seller: {
+      '@type': userInfo?.isAgency ? 'RealEstateAgent' : 'Person',
+      name: userInfo?.displayName || userInfo?.ragioneSociale || annuncio.nome_contatto,
+      url: userInfo?.isAgency && userInfo.slug ? `https://casavista.it/agenzia/${userInfo.slug}` : undefined
+    },
+    itemOffered: {
+      '@type': getPropertySchemaType(annuncio.categoria),
+      name: annuncio.titolo,
+      description: annuncio.descrizione,
+      image: immagini,
+      floorSize: {
+        '@type': 'QuantitativeValue',
+        value: annuncio.superficie,
+        unitCode: 'MTK'
+      },
+      numberOfRooms: annuncio.locali,
+      numberOfBedrooms: annuncio.camere,
+      numberOfBathroomsTotal: annuncio.bagni,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: annuncio.indirizzo,
+        addressLocality: annuncio.citta,
+        postalCode: annuncio.cap,
+        addressRegion: annuncio.provincia,
+        addressCountry: 'IT'
+      },
+      geo: annuncio.coordinate ? {
+        '@type': 'GeoCoordinates',
+        latitude: annuncio.coordinate.lat,
+        longitude: annuncio.coordinate.lng
+      } : undefined
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -200,6 +259,7 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
         url={canonicalUrl}
         image={annuncio.immagini[0]}
         type="article"
+        structuredData={annuncioStructuredData}
       />
       
       <div className="bg-white border-b">

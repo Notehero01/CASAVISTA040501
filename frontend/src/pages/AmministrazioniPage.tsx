@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { amministrazioniApi } from '@/utils/api';
+import { SEO } from '@/utils/seo';
 import { toast } from 'sonner';
 
 const SERVIZI = [
@@ -62,6 +63,17 @@ export function AmministrazioniPage() {
     const matchServizi = filtroServizi.length === 0 || filtroServizi.every(s => a.servizi?.includes(s));
     return matchSearch && matchServizi;
   });
+  const amministrazioniStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Amministrazioni condominiali su CasaVista',
+    itemListElement: filtered.slice(0, 50).map((amministrazione, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: amministrazione.displayName || amministrazione.ragioneSociale || `${amministrazione.nome} ${amministrazione.cognome}`,
+      url: `https://casavista.it/agenzia/${amministrazione.slug || amministrazione.id}`
+    }))
+  };
 
   const toggleServizio = (s: string) => {
     setFiltroServizi(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -69,6 +81,12 @@ export function AmministrazioniPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 md:py-12">
+      <SEO
+        title="Amministrazioni condominiali a Modena | CasaVista"
+        description="Trova profili specializzati in amministrazione condominiale registrati su CasaVista."
+        url="https://casavista.it/amministrazioni"
+        structuredData={amministrazioniStructuredData}
+      />
       <div className="container mx-auto px-4">
         <div className="text-center mb-10 md:mb-12">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#e74c3c]/10 rounded-full mb-4">

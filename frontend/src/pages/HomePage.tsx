@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { annunciApi } from '@/utils/api';
+import { SEO } from '@/utils/seo';
 import type { Annuncio } from '@/types/annuncio';
 
 const categorie = [
@@ -20,6 +21,30 @@ export function HomePage() {
   const [featured, setFeatured] = useState<Annuncio[]>([]);
   const [recent, setRecent] = useState<Annuncio[]>([]);
   const [citta, setCitta] = useState('');
+  const homeStructuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'CasaVista',
+      url: 'https://casavista.it',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: 'https://casavista.it/cerca?citta={search_term_string}',
+        'query-input': 'required name=search_term_string'
+      }
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'CasaVista',
+      url: 'https://casavista.it',
+      email: 'info@casavista.it',
+      areaServed: {
+        '@type': 'AdministrativeArea',
+        name: 'Modena e provincia'
+      }
+    }
+  ];
 
   useEffect(() => {
     annunciApi.getFeatured().then(setFeatured);
@@ -28,6 +53,13 @@ export function HomePage() {
 
   return (
     <main>
+      <SEO
+        title="CasaVista | Annunci immobiliari a Modena e provincia"
+        description="Cerca, confronta e pubblica annunci immobiliari a Modena e provincia con CasaVista."
+        url="https://casavista.it"
+        type="website"
+        structuredData={homeStructuredData}
+      />
       {/* Hero */}
       <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-20 lg:py-32">
         <div className="container mx-auto px-4 relative">

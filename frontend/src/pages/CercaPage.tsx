@@ -177,6 +177,18 @@ export function CercaPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title="Case e appartamenti a Modena | CasaVista"
+        description="Cerca annunci immobiliari in vendita e in affitto a Modena e provincia. Filtra per prezzo, tipologia, dimensioni e zona."
+        url="https://casavista.it/cerca"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'SearchResultsPage',
+          name: 'Ricerca immobili CasaVista',
+          url: 'https://casavista.it/cerca',
+          about: 'Annunci immobiliari a Modena e provincia'
+        }}
+      />
       <div className="bg-white border-b sticky top-16 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">

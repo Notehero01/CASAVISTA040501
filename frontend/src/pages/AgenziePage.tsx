@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { amministrazioniApi } from '@/utils/api';
+import { SEO } from '@/utils/seo';
 import { toast } from 'sonner';
 
 interface Agenzia {
@@ -40,9 +41,26 @@ export function AgenziePage() {
     const haystack = `${agenzia.nome} ${agenzia.cognome} ${agenzia.ragioneSociale || ''} ${agenzia.citta || ''}`.toLowerCase();
     return !searchQuery || haystack.includes(searchQuery.toLowerCase());
   });
+  const agenzieStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Agenzie immobiliari su CasaVista',
+    itemListElement: filtered.slice(0, 50).map((agenzia, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: agenzia.displayName || agenzia.ragioneSociale || `${agenzia.nome} ${agenzia.cognome}`,
+      url: `https://casavista.it/agenzia/${agenzia.slug || agenzia.id}`
+    }))
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 md:py-12">
+      <SEO
+        title="Agenzie immobiliari a Modena | CasaVista"
+        description="Scopri le agenzie immobiliari registrate su CasaVista e consulta i loro annunci a Modena e provincia."
+        url="https://casavista.it/agenzie"
+        structuredData={agenzieStructuredData}
+      />
       <div className="container mx-auto px-4">
         <div className="mb-10 text-center md:mb-12">
           <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#e74c3c]/10">

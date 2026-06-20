@@ -113,6 +113,37 @@ export function AgenziaPage() {
   const description = agenzia.descrizione
     ? agenzia.descrizione.slice(0, 155)
     : `Scopri gli annunci immobiliari di ${agenzia.displayName} su CasaVista.`;
+  const agencyUrl = `https://casavista.it/agenzia/${agenzia.slug}`;
+  const agencyStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'RealEstateAgent',
+    name: agenzia.displayName,
+    description,
+    url: agencyUrl,
+    image: agenzia.coverImage || agenzia.logo || undefined,
+    logo: agenzia.logo || undefined,
+    email: agenzia.email,
+    telephone: agenzia.telefono || agenzia.whatsapp || undefined,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: agenzia.indirizzo || undefined,
+      addressLocality: agenzia.citta || undefined,
+      addressRegion: agenzia.provincia || undefined,
+      addressCountry: 'IT'
+    },
+    areaServed: agenzia.citta ? {
+      '@type': 'City',
+      name: agenzia.citta
+    } : 'Modena',
+    sameAs: websiteUrl ? [websiteUrl] : undefined,
+    makesOffer: annunci.slice(0, 10).map(annuncio => ({
+      '@type': 'Offer',
+      name: annuncio.titolo,
+      url: `https://casavista.it/annuncio/${annuncio.slug || annuncio.id}`,
+      price: annuncio.prezzo,
+      priceCurrency: 'EUR'
+    }))
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -120,8 +151,9 @@ export function AgenziaPage() {
         title={title}
         description={description}
         image={agenzia.coverImage || agenzia.logo}
-        url={`https://casavista.it/agenzia/${agenzia.slug}`}
+        url={agencyUrl}
         type="profile"
+        structuredData={agencyStructuredData}
       />
 
       <div className="bg-white border-b">
