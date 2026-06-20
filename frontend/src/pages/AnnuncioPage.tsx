@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Bed, Bath, Maximize, User, Phone, Mail, ArrowLeft, Heart, Check, Eye, MessageCircle, Scale, Share2, BadgeCheck, Building2, ChevronLeft, ChevronRight, Image, X } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize, User, Phone, Mail, ArrowLeft, Heart, Check, Eye, MessageCircle, Scale, Share2, BadgeCheck, Building2, ChevronLeft, ChevronRight, Image, X, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -41,6 +41,7 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   const immagini = Array.isArray(annuncio?.immagini) ? annuncio.immagini.filter(Boolean) : [];
   const activeImage = immagini[activeImageIndex] || 'https://via.placeholder.com/800x600';
   const hasMultipleImages = immagini.length > 1;
+  const canEditAnnuncio = Boolean(currentUser && annuncio && (currentUser.id === annuncio.userId || currentUser.tipo === 'admin'));
   const showPreviousImage = () => {
     if (!hasMultipleImages) return;
     setActiveImageIndex((current) => (current === 0 ? immagini.length - 1 : current - 1));
@@ -49,6 +50,7 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
     if (!hasMultipleImages) return;
     setActiveImageIndex((current) => (current + 1) % immagini.length);
   };
+  const closeLightbox = () => setIsLightboxOpen(false);
 
   useEffect(() => {
     if (slug) {
@@ -300,6 +302,13 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
                 <Button variant="outline" size="sm" onClick={handleShare}>
                   <Share2 className="h-4 w-4 mr-2" />Condividi
                 </Button>
+                {canEditAnnuncio && (
+                  <Link to={`/modifica-annuncio/${annuncio.id}`}>
+                    <Button variant="outline" size="sm">
+                      <Pencil className="h-4 w-4 mr-2" />Modifica
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               <Separator className="my-6" />
@@ -445,49 +454,76 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
       </div>
 
       {isLightboxOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/92 p-4 text-white" role="dialog" aria-modal="true">
-          <button
-            type="button"
-            onClick={() => setIsLightboxOpen(false)}
-            className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/22"
-            aria-label="Chiudi foto"
-          >
-            <X className="h-6 w-6" />
-          </button>
+        <div
+          className="fixed inset-0 z-[100] bg-black/94 p-3 text-white sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeLightbox();
+          }}
+        >
+          <div className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between gap-3 sm:left-4 sm:right-4 sm:top-4">
+            <div className="min-w-0 text-sm text-white/75">
+              <p className="truncate font-medium text-white">{annuncio.titolo}</p>
+              <p>{activeImageIndex + 1}/{immagini.length || 1}</p>
+            </div>
+            <button
+              type="button"
+              onClick={closeLightbox}
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-white/12 px-4 text-sm font-semibold text-white transition-colors hover:bg-white/22"
+              aria-label="Chiudi foto"
+            >
+              <X className="h-5 w-5" />
+              Chiudi
+            </button>
+          </div>
 
           {hasMultipleImages && (
             <>
               <button
                 type="button"
                 onClick={showPreviousImage}
-                className="absolute left-4 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/22"
-                aria-label="Foto precedente"
+                className="absolute left-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/14 text-white transition-colors hover:bg-white/24 sm:left-5 sm:h-14 sm:w-14"
+                aria-label="Foto precedente nel viewer"
               >
-                <ChevronLeft className="h-7 w-7" />
+                <ChevronLeft className="h-8 w-8" />
               </button>
               <button
                 type="button"
                 onClick={showNextImage}
-                className="absolute right-4 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/22"
-                aria-label="Foto successiva"
+                className="absolute right-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/14 text-white transition-colors hover:bg-white/24 sm:right-5 sm:h-14 sm:w-14"
+                aria-label="Foto successiva nel viewer"
               >
-                <ChevronRight className="h-7 w-7" />
+                <ChevronRight className="h-8 w-8" />
               </button>
             </>
           )}
 
-          <div className="mx-auto flex h-full max-w-6xl flex-col gap-4 pt-14">
+          <div className="mx-auto flex h-full max-w-6xl flex-col gap-3 pt-16 sm:pt-20" onClick={(event) => event.stopPropagation()}>
             <WatermarkedImage
               src={activeImage}
               alt={`${annuncio.titolo} - foto ${activeImageIndex + 1}`}
               fit="contain"
               className="min-h-0 flex-1 bg-black"
-              watermarkClassName="bottom-5 right-5 bg-white/18 px-3 py-1 text-xs tracking-[0.24em] text-white/45"
+              watermarkClassName="text-white/20 mix-blend-normal"
             />
-            <div className="flex items-center justify-between gap-4 text-sm text-white/75">
-              <span>{activeImageIndex + 1}/{immagini.length || 1}</span>
-              <span className="truncate">{annuncio.titolo}</span>
-            </div>
+            {hasMultipleImages && (
+              <div className="flex max-h-24 gap-2 overflow-x-auto rounded-xl bg-white/8 p-2">
+                {immagini.map((img, index) => (
+                  <button
+                    key={`${img}-viewer-${index}`}
+                    type="button"
+                    onClick={() => setActiveImageIndex(index)}
+                    className={`h-16 w-24 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors sm:h-20 sm:w-28 ${
+                      activeImageIndex === index ? 'border-white' : 'border-transparent opacity-70 hover:opacity-100'
+                    }`}
+                    aria-label={`Apri foto ${index + 1} nel viewer`}
+                  >
+                    <WatermarkedImage src={img} alt={`${annuncio.titolo} miniatura ${index + 1}`} fit="contain" watermark={false} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

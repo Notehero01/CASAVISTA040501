@@ -73,6 +73,7 @@ function App() {
               element={<AnnuncioPage currentUser={user} onStartChat={handleStartChat} />}
             />
             <Route path="/pubblica" element={isAuthenticated ? <PubblicaPage /> : <LoginPage onLogin={login} />} />
+            <Route path="/modifica-annuncio/:id" element={isAuthenticated ? <PubblicaPage /> : <LoginPage onLogin={login} />} />
             <Route path="/contatti" element={<ContattiPage />} />
             <Route path="/valutazione" element={<ValutazionePage />} />
             <Route path="/mutuo" element={<MutuoPage />} />

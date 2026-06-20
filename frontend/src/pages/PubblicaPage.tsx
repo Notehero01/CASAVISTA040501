@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Upload, X, Check, MapPin, Euro, Bed, Bath, Maximize, User, Phone, Mail, Navigation, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,17 +11,12 @@ import { annunciApi, uploadApi } from '@/utils/api';
 import { AddressSearch } from '@/components/MapView';
 import { WatermarkedImage } from '@/components/WatermarkedImage';
 import { CATEGORIE, CARATTERISTICHE, CLASSI_ENERGETICHE, STATI_IMMOBILE, RISCALDAMENTO } from '@/types/annuncio';
+import type { Annuncio } from '@/types/annuncio';
 
 const MAX_IMAGES = 30;
 
-export function PubblicaPage() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const [customCaratteristica, setCustomCaratteristica] = useState('');
-  
-  const [formData, setFormData] = useState({
+function createEmptyFormData() {
+  return {
     tipo: 'vendita' as 'vendita' | 'affitto',
     categoria: '',
     titolo: '',
@@ -46,7 +41,67 @@ export function PubblicaPage() {
     nome_contatto: '',
     telefono_contatto: '',
     email_contatto: ''
-  });
+  };
+}
+
+function getEditableFormData(annuncio: Annuncio) {
+  return {
+    tipo: annuncio.tipo,
+    categoria: annuncio.categoria || '',
+    titolo: annuncio.titolo || '',
+    descrizione: annuncio.descrizione || '',
+    prezzo: annuncio.prezzo !== undefined && annuncio.prezzo !== null ? String(annuncio.prezzo) : '',
+    superficie: annuncio.superficie !== undefined && annuncio.superficie !== null ? String(annuncio.superficie) : '',
+    locali: annuncio.locali !== undefined && annuncio.locali !== null ? String(annuncio.locali) : '',
+    camere: annuncio.camere !== undefined && annuncio.camere !== null ? String(annuncio.camere) : '',
+    bagni: annuncio.bagni !== undefined && annuncio.bagni !== null ? String(annuncio.bagni) : '',
+    piano: annuncio.piano !== undefined && annuncio.piano !== null ? String(annuncio.piano) : '',
+    anno_costruzione: annuncio.anno_costruzione !== undefined && annuncio.anno_costruzione !== null ? String(annuncio.anno_costruzione) : '',
+    classe_energetica: annuncio.classe_energetica || '',
+    stato: annuncio.stato || '',
+    riscaldamento: annuncio.riscaldamento || '',
+    caratteristiche: Array.isArray(annuncio.caratteristiche) ? annuncio.caratteristiche : [],
+    indirizzo: annuncio.indirizzo || '',
+    citta: annuncio.citta || '',
+    cap: annuncio.cap || '',
+    provincia: annuncio.provincia || '',
+    coordinate: annuncio.coordinate || null,
+    immagini: Array.isArray(annuncio.immagini) ? annuncio.immagini : [],
+    nome_contatto: annuncio.nome_contatto || '',
+    telefono_contatto: annuncio.telefono_contatto || '',
+    email_contatto: annuncio.email_contatto || ''
+  };
+}
+
+export function PubblicaPage() {
+  const navigate = useNavigate();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = Boolean(editId);
+  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [customCaratteristica, setCustomCaratteristica] = useState('');
+
+  const [formData, setFormData] = useState(createEmptyFormData);
+
+  useEffect(() => {
+    if (!editId) {
+      setFormData(createEmptyFormData());
+      return;
+    }
+
+    setIsLoadingEdit(true);
+    annunciApi.getById(editId)
+      .then((annuncio) => {
+        setFormData(getEditableFormData(annuncio));
+      })
+      .catch((error: any) => {
+        toast.error(error.message || 'Non sono riuscito a caricare l\'annuncio.');
+        navigate('/miei-annunci');
+      })
+      .finally(() => setIsLoadingEdit(false));
+  }, [editId, navigate]);
 
   const toggleCaratteristica = (car: string) => {
     setFormData(prev => ({
@@ -105,7 +160,7 @@ export function PubblicaPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const result = await annunciApi.create({
+      const payload = {
         ...formData,
         prezzo: parseFloat(formData.prezzo),
         superficie: parseFloat(formData.superficie),
@@ -114,8 +169,12 @@ export function PubblicaPage() {
         bagni: parseInt(formData.bagni) || 0,
         piano: formData.piano ? parseInt(formData.piano) : undefined,
         anno_costruzione: formData.anno_costruzione ? parseInt(formData.anno_costruzione) : undefined
-      });
-      toast.success('Annuncio pubblicato!');
+      };
+      const result = isEditMode && editId
+        ? await annunciApi.update(editId, payload)
+        : await annunciApi.create(payload);
+
+      toast.success(isEditMode ? 'Annuncio aggiornato!' : 'Annuncio pubblicato!');
       // Naviga usando lo slug per SEO
       navigate(`/annuncio/${result.annuncio.slug || result.annuncio.id}`);
     } catch (error: any) {
@@ -129,8 +188,10 @@ export function PubblicaPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-3xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Pubblica il tuo annuncio</h1>
-          <p className="text-gray-600">Inserisci i dettagli del tuo immobile</p>
+          <h1 className="text-3xl font-bold">{isEditMode ? 'Modifica annuncio' : 'Pubblica il tuo annuncio'}</h1>
+          <p className="text-gray-600">
+            {isEditMode ? 'Aggiorna i dettagli del tuo immobile gia pubblicato' : 'Inserisci i dettagli del tuo immobile'}
+          </p>
         </div>
 
         <div className="flex justify-center mb-8">
@@ -142,6 +203,12 @@ export function PubblicaPage() {
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6">
+          {isLoadingEdit ? (
+            <div className="flex justify-center py-16">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#e74c3c] border-t-transparent" />
+            </div>
+          ) : (
+          <>
           {step === 1 && (
             <div className="space-y-6">
               <Tabs value={formData.tipo} onValueChange={(v) => setFormData({ ...formData, tipo: v as 'vendita' | 'affitto' })}>
@@ -415,10 +482,12 @@ export function PubblicaPage() {
               <Button onClick={() => setStep(step + 1)} className="bg-[#e74c3c]">Avanti</Button>
             ) : (
               <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-[#e74c3c]">
-                {isSubmitting ? 'Pubblicazione...' : 'Pubblica annuncio'}
+                {isSubmitting ? (isEditMode ? 'Salvataggio...' : 'Pubblicazione...') : (isEditMode ? 'Salva modifiche' : 'Pubblica annuncio')}
               </Button>
             )}
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>

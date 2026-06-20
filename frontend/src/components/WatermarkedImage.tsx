@@ -32,11 +32,11 @@ export function WatermarkedImage({
       {watermark && (
         <span
           className={cn(
-            'pointer-events-none absolute bottom-2 right-2 select-none rounded-full bg-white/35 px-2 py-0.5 text-[10px] font-semibold lowercase tracking-[0.18em] text-gray-900/45 backdrop-blur-[1px]',
+            'pointer-events-none absolute left-1/2 top-1/2 select-none -translate-x-1/2 -translate-y-1/2 -rotate-12 font-mono text-[clamp(1.15rem,7vw,4.5rem)] font-black uppercase tracking-[0.26em] text-gray-950/15 mix-blend-multiply [font-stretch:condensed]',
             watermarkClassName
           )}
         >
-          casavista
+          CASAVISTA
         </span>
       )}
     </div>

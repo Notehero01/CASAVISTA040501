@@ -309,6 +309,7 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Non autorizzato.' });
     }
 
+    const existingAnnuncio = annunci[index];
     const updateBody = { ...req.body };
     if (Array.isArray(updateBody.immagini)) {
       updateBody.immagini = updateBody.immagini.slice(0, MAX_IMAGES_PER_ANNUNCIO);
@@ -317,8 +318,24 @@ router.put('/:id', auth, async (req, res) => {
       updateBody.caratteristiche = updateBody.caratteristiche.map(item => String(item).trim()).filter(Boolean).slice(0, 60);
     }
 
+    if (updateBody.prezzo !== undefined) updateBody.prezzo = parseFloat(updateBody.prezzo);
+    if (updateBody.superficie !== undefined) updateBody.superficie = parseFloat(updateBody.superficie);
+    if (updateBody.locali !== undefined) updateBody.locali = parseInt(updateBody.locali) || 0;
+    if (updateBody.camere !== undefined) updateBody.camere = parseInt(updateBody.camere) || 0;
+    if (updateBody.bagni !== undefined) updateBody.bagni = parseInt(updateBody.bagni) || 0;
+    if (updateBody.piano !== undefined) updateBody.piano = updateBody.piano === '' || updateBody.piano === null ? null : parseInt(updateBody.piano);
+    if (updateBody.anno_costruzione !== undefined) {
+      updateBody.anno_costruzione = updateBody.anno_costruzione === '' || updateBody.anno_costruzione === null ? null : parseInt(updateBody.anno_costruzione);
+    }
+    if (updateBody.classe_energetica !== undefined) updateBody.classe_energetica = updateBody.classe_energetica || null;
+    if (updateBody.stato !== undefined) updateBody.stato = updateBody.stato || null;
+    if (updateBody.riscaldamento !== undefined) updateBody.riscaldamento = updateBody.riscaldamento || null;
+    if (updateBody.titolo && updateBody.titolo !== existingAnnuncio.titolo) {
+      updateBody.slug = generateSlug(updateBody.titolo, existingAnnuncio.id);
+    }
+
     annunci[index] = {
-      ...annunci[index],
+      ...existingAnnuncio,
       ...updateBody,
       updatedAt: new Date().toISOString()
     };

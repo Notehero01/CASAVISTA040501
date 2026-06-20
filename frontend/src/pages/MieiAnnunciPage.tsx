@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bath, Bed, Building2, Eye, MapPin, Maximize, Plus, Trash2 } from 'lucide-react';
+import { Bath, Bed, Building2, Eye, MapPin, Maximize, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -101,10 +101,15 @@ export function MieiAnnunciPage() {
                     <span className="flex items-center gap-1"><Maximize className="h-4 w-4" />{annuncio.superficie} m²</span>
                   </div>
                   <p className="mt-3 text-xl font-bold text-[#e74c3c]">{formatPrice(annuncio)}</p>
-                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <Link to={`/annuncio/${annuncio.slug || annuncio.id}`} className="flex-1">
                       <Button variant="outline" className="w-full">
                         <Eye className="mr-2 h-4 w-4" />Vedi
+                      </Button>
+                    </Link>
+                    <Link to={`/modifica-annuncio/${annuncio.id}`} className="flex-1">
+                      <Button variant="outline" className="w-full">
+                        <Pencil className="mr-2 h-4 w-4" />Modifica
                       </Button>
                     </Link>
                     <Button
