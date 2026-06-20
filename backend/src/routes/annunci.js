@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { readData, writeData, generateId } = require('../utils/db');
-const { auth } = require('../middleware/auth');
+const { auth, optionalAuth } = require('../middleware/auth');
 
 const MAX_IMAGES_PER_ANNUNCIO = 30;
 
@@ -29,7 +29,14 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 function isPublicAnnuncio(annuncio) {
-  return !annuncio.deletedAt && !['hidden', 'deleted'].includes(annuncio.moderationStatus);
+  const status = annuncio.moderationStatus || 'published';
+  return !annuncio.deletedAt && status === 'published';
+}
+
+function canViewAnnuncio(annuncio, user) {
+  if (isPublicAnnuncio(annuncio)) return true;
+  if (!user || annuncio.deletedAt || annuncio.moderationStatus === 'deleted') return false;
+  return annuncio.userId === user.id || user.tipo === 'admin';
 }
 
 // Get featured annunci
@@ -165,13 +172,13 @@ router.get('/', async (req, res) => {
 });
 
 // Get single annuncio (supporta sia ID che slug)
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const annunci = await readData('annunci');
     const { id } = req.params;
     
     // Cerca per ID o slug
-    const annuncio = annunci.find(a => (a.id === id || a.slug === id) && isPublicAnnuncio(a));
+    const annuncio = annunci.find(a => (a.id === id || a.slug === id) && canViewAnnuncio(a, req.user));
 
     if (!annuncio) {
       return res.status(404).json({ message: 'Annuncio non trovato.' });
@@ -274,7 +281,10 @@ router.post('/', auth, async (req, res) => {
       telefono_contatto: telefono_contatto || req.user.telefono,
       email_contatto: email_contatto || req.user.email,
       userId: req.user.id,
-      moderationStatus: 'published',
+      moderationStatus: req.user.tipo === 'admin' ? 'published' : 'pending',
+      reviewRequestedAt: new Date().toISOString(),
+      approvedAt: req.user.tipo === 'admin' ? new Date().toISOString() : null,
+      approvedBy: req.user.tipo === 'admin' ? req.user.id : null,
       visualizzazioni: 0,
       contattiRicevuti: 0,
       createdAt: new Date().toISOString(),
@@ -285,7 +295,9 @@ router.post('/', auth, async (req, res) => {
     await writeData('annunci', annunci);
 
     res.status(201).json({
-      message: 'Annuncio creato con successo.',
+      message: req.user.tipo === 'admin'
+        ? 'Annuncio pubblicato.'
+        : 'Annuncio inviato in revisione. Sara visibile dopo approvazione admin.',
       annuncio: newAnnuncio
     });
   } catch (error) {
@@ -311,6 +323,25 @@ router.put('/:id', auth, async (req, res) => {
 
     const existingAnnuncio = annunci[index];
     const updateBody = { ...req.body };
+    [
+      'id',
+      'userId',
+      'moderationStatus',
+      'approvedAt',
+      'approvedBy',
+      'hiddenAt',
+      'rejectedAt',
+      'rejectedBy',
+      'deletedAt',
+      'reviewedAt',
+      'reviewedBy',
+      'visualizzazioni',
+      'contattiRicevuti',
+      'createdAt',
+      'updatedAt',
+      'owner'
+    ].forEach(field => delete updateBody[field]);
+
     if (Array.isArray(updateBody.immagini)) {
       updateBody.immagini = updateBody.immagini.slice(0, MAX_IMAGES_PER_ANNUNCIO);
     }
@@ -334,16 +365,32 @@ router.put('/:id', auth, async (req, res) => {
       updateBody.slug = generateSlug(updateBody.titolo, existingAnnuncio.id);
     }
 
+    const userIsAdmin = req.user.tipo === 'admin';
+    const moderationUpdate = userIsAdmin
+      ? {}
+      : {
+          moderationStatus: 'pending',
+          reviewRequestedAt: new Date().toISOString(),
+          approvedAt: null,
+          approvedBy: null,
+          hiddenAt: null,
+          rejectedAt: null,
+          rejectedBy: null
+        };
+
     annunci[index] = {
       ...existingAnnuncio,
       ...updateBody,
+      ...moderationUpdate,
       updatedAt: new Date().toISOString()
     };
 
     await writeData('annunci', annunci);
 
     res.json({
-      message: 'Annuncio aggiornato.',
+      message: userIsAdmin
+        ? 'Annuncio aggiornato.'
+        : 'Annuncio aggiornato e rimesso in revisione.',
       annuncio: annunci[index]
     });
   } catch (error) {

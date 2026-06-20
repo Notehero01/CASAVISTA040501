@@ -29,6 +29,12 @@ export interface Annuncio {
   telefono_contatto: string;
   email_contatto?: string;
   userId: string;
+  moderationStatus?: 'pending' | 'published' | 'hidden' | 'rejected' | 'deleted';
+  reviewRequestedAt?: string;
+  reviewedAt?: string;
+  approvedAt?: string;
+  hiddenAt?: string;
+  rejectedAt?: string;
   visualizzazioni: number;
   createdAt: string;
   updatedAt: string;

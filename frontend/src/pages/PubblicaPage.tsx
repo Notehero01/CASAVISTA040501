@@ -170,13 +170,18 @@ export function PubblicaPage() {
         piano: formData.piano ? parseInt(formData.piano) : undefined,
         anno_costruzione: formData.anno_costruzione ? parseInt(formData.anno_costruzione) : undefined
       };
-      const result = isEditMode && editId
-        ? await annunciApi.update(editId, payload)
-        : await annunciApi.create(payload);
+      if (isEditMode && editId) {
+        await annunciApi.update(editId, payload);
+      } else {
+        await annunciApi.create(payload);
+      }
 
-      toast.success(isEditMode ? 'Annuncio aggiornato!' : 'Annuncio pubblicato!');
-      // Naviga usando lo slug per SEO
-      navigate(`/annuncio/${result.annuncio.slug || result.annuncio.id}`);
+      toast.success(
+        isEditMode
+          ? 'Annuncio aggiornato e inviato in revisione.'
+          : 'Annuncio inviato in revisione. Sara pubblicato dopo approvazione admin.'
+      );
+      navigate('/miei-annunci');
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -190,7 +195,7 @@ export function PubblicaPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold">{isEditMode ? 'Modifica annuncio' : 'Pubblica il tuo annuncio'}</h1>
           <p className="text-gray-600">
-            {isEditMode ? 'Aggiorna i dettagli del tuo immobile gia pubblicato' : 'Inserisci i dettagli del tuo immobile'}
+            {isEditMode ? 'Aggiorna i dettagli: dopo il salvataggio tornera in revisione' : 'Inserisci i dettagli: andra online dopo approvazione admin'}
           </p>
         </div>
 
@@ -482,7 +487,7 @@ export function PubblicaPage() {
               <Button onClick={() => setStep(step + 1)} className="bg-[#e74c3c]">Avanti</Button>
             ) : (
               <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-[#e74c3c]">
-                {isSubmitting ? (isEditMode ? 'Salvataggio...' : 'Pubblicazione...') : (isEditMode ? 'Salva modifiche' : 'Pubblica annuncio')}
+                {isSubmitting ? (isEditMode ? 'Salvataggio...' : 'Invio in revisione...') : (isEditMode ? 'Salva e invia in revisione' : 'Invia in revisione')}
               </Button>
             )}
           </div>

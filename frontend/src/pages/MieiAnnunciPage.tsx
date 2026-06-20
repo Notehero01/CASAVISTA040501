@@ -13,6 +13,39 @@ function formatPrice(annuncio: Annuncio) {
   return `€ ${Number(annuncio.prezzo || 0).toLocaleString('it-IT')}${annuncio.tipo === 'affitto' ? '/mese' : ''}`;
 }
 
+function getModerationMeta(status?: Annuncio['moderationStatus']) {
+  const current = status || 'published';
+  const meta: Record<string, { label: string; className: string; description: string }> = {
+    pending: {
+      label: 'In revisione',
+      className: 'bg-amber-100 text-amber-800 border-amber-200',
+      description: 'Non e ancora visibile al pubblico.'
+    },
+    published: {
+      label: 'Online',
+      className: 'bg-green-100 text-green-800 border-green-200',
+      description: 'Visibile su CasaVista.'
+    },
+    hidden: {
+      label: 'Nascosto',
+      className: 'bg-gray-100 text-gray-700 border-gray-200',
+      description: 'Non visibile al pubblico.'
+    },
+    rejected: {
+      label: 'Da correggere',
+      className: 'bg-red-100 text-red-700 border-red-200',
+      description: 'Modifica l annuncio e reinvialo in revisione.'
+    },
+    deleted: {
+      label: 'Eliminato',
+      className: 'bg-gray-100 text-gray-700 border-gray-200',
+      description: ''
+    }
+  };
+
+  return meta[current] || meta.published;
+}
+
 export function MieiAnnunciPage() {
   const [annunci, setAnnunci] = useState<Annuncio[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,19 +115,30 @@ export function MieiAnnunciPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {annunci.map(annuncio => (
+            {annunci.map(annuncio => {
+              const status = getModerationMeta(annuncio.moderationStatus);
+
+              return (
               <Card key={annuncio.id} className="overflow-hidden">
                 <div className="relative aspect-[4/3] bg-gray-100">
                   <WatermarkedImage src={annuncio.immagini?.[0]} alt={annuncio.titolo} className="h-full w-full" fit="contain" />
-                  <Badge className={`absolute left-3 top-3 ${annuncio.tipo === 'vendita' ? 'bg-[#e74c3c]' : 'bg-blue-600'}`}>
-                    {annuncio.tipo === 'vendita' ? 'Vendita' : 'Affitto'}
-                  </Badge>
+                  <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                    <Badge className={annuncio.tipo === 'vendita' ? 'bg-[#e74c3c]' : 'bg-blue-600'}>
+                      {annuncio.tipo === 'vendita' ? 'Vendita' : 'Affitto'}
+                    </Badge>
+                    <Badge variant="outline" className={status.className}>
+                      {status.label}
+                    </Badge>
+                  </div>
                 </div>
                 <CardContent className="p-4">
                   <h2 className="line-clamp-2 font-semibold text-gray-900">{annuncio.titolo}</h2>
                   <p className="mt-1 flex items-center gap-1 text-sm text-gray-500">
                     <MapPin className="h-3 w-3" />{annuncio.citta || 'Città non indicata'}
                   </p>
+                  {status.description && (
+                    <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600">{status.description}</p>
+                  )}
                   <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
                     <span className="flex items-center gap-1"><Bed className="h-4 w-4" />{annuncio.camere}</span>
                     <span className="flex items-center gap-1"><Bath className="h-4 w-4" />{annuncio.bagni}</span>
@@ -124,7 +168,8 @@ export function MieiAnnunciPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

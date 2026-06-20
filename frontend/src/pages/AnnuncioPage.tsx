@@ -42,6 +42,22 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
   const activeImage = immagini[activeImageIndex] || 'https://via.placeholder.com/800x600';
   const hasMultipleImages = immagini.length > 1;
   const canEditAnnuncio = Boolean(currentUser && annuncio && (currentUser.id === annuncio.userId || currentUser.tipo === 'admin'));
+  const moderationStatus = annuncio?.moderationStatus || 'published';
+  const isPublished = moderationStatus === 'published';
+  const moderationCopy = {
+    pending: {
+      label: 'Annuncio in revisione',
+      text: 'Questo annuncio non e ancora visibile al pubblico. Un admin deve approvarlo.'
+    },
+    hidden: {
+      label: 'Annuncio nascosto',
+      text: 'Questo annuncio non e visibile al pubblico.'
+    },
+    rejected: {
+      label: 'Annuncio da correggere',
+      text: 'Questo annuncio non e visibile al pubblico. Modificalo e reinvialo in revisione.'
+    }
+  } as const;
   const showPreviousImage = () => {
     if (!hasMultipleImages) return;
     setActiveImageIndex((current) => (current === 0 ? immagini.length - 1 : current - 1));
@@ -195,6 +211,13 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {!isPublished && moderationCopy[moderationStatus as keyof typeof moderationCopy] && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+            <p className="font-semibold">{moderationCopy[moderationStatus as keyof typeof moderationCopy].label}</p>
+            <p className="mt-1 text-sm">{moderationCopy[moderationStatus as keyof typeof moderationCopy].text}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl overflow-hidden shadow-sm mb-6">
@@ -279,29 +302,33 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
               </div>
 
               {/* Azioni rapide */}
-              <div className="flex gap-2 mb-6">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePreferito}
-                  className={isPreferito(annuncio.id) ? 'text-red-500 border-red-200 bg-red-50' : ''}
-                >
-                  <Heart className={`h-4 w-4 mr-2 ${isPreferito(annuncio.id) ? 'fill-current' : ''}`} />
-                  {isPreferito(annuncio.id) ? 'Salvato' : 'Salva'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleConfronto}
-                  disabled={!isNelConfronto(annuncio.id) && !canAddMore}
-                  className={isNelConfronto(annuncio.id) ? 'text-blue-500 border-blue-200 bg-blue-50' : ''}
-                >
-                  <Scale className="h-4 w-4 mr-2" />
-                  {isNelConfronto(annuncio.id) ? 'Nel confronto' : 'Confronta'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Share2 className="h-4 w-4 mr-2" />Condividi
-                </Button>
+              <div className="flex flex-wrap gap-2 mb-6">
+                {isPublished && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreferito}
+                      className={isPreferito(annuncio.id) ? 'text-red-500 border-red-200 bg-red-50' : ''}
+                    >
+                      <Heart className={`h-4 w-4 mr-2 ${isPreferito(annuncio.id) ? 'fill-current' : ''}`} />
+                      {isPreferito(annuncio.id) ? 'Salvato' : 'Salva'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleConfronto}
+                      disabled={!isNelConfronto(annuncio.id) && !canAddMore}
+                      className={isNelConfronto(annuncio.id) ? 'text-blue-500 border-blue-200 bg-blue-50' : ''}
+                    >
+                      <Scale className="h-4 w-4 mr-2" />
+                      {isNelConfronto(annuncio.id) ? 'Nel confronto' : 'Confronta'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleShare}>
+                      <Share2 className="h-4 w-4 mr-2" />Condividi
+                    </Button>
+                  </>
+                )}
                 {canEditAnnuncio && (
                   <Link to={`/modifica-annuncio/${annuncio.id}`}>
                     <Button variant="outline" size="sm">
@@ -437,17 +464,25 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
                 </div>
               </div>
 
-              <Button
-                className="w-full bg-[#e74c3c] hover:bg-[#c0392b] mb-3"
-                onClick={handleStartChat}
-                disabled={chatLoading}
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                {chatLoading ? 'Apertura chat...' : 'Scrivi in chat'}
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => window.location.href = `tel:${annuncio.telefono_contatto}`}>
-                <Phone className="h-4 w-4 mr-2" />Chiama
-              </Button>
+              {isPublished ? (
+                <>
+                  <Button
+                    className="w-full bg-[#e74c3c] hover:bg-[#c0392b] mb-3"
+                    onClick={handleStartChat}
+                    disabled={chatLoading}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    {chatLoading ? 'Apertura chat...' : 'Scrivi in chat'}
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => window.location.href = `tel:${annuncio.telefono_contatto}`}>
+                    <Phone className="h-4 w-4 mr-2" />Chiama
+                  </Button>
+                </>
+              ) : (
+                <div className="rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
+                  I contatti saranno disponibili quando l annuncio sara approvato.
+                </div>
+              )}
             </div>
           </div>
         </div>

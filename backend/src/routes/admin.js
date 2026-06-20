@@ -17,7 +17,8 @@ function sanitizeUser(user) {
 }
 
 function isVisibleAnnuncio(annuncio) {
-  return !annuncio.deletedAt && !['hidden', 'deleted'].includes(annuncio.moderationStatus);
+  const status = annuncio.moderationStatus || 'published';
+  return !annuncio.deletedAt && status === 'published';
 }
 
 router.get('/summary', async (req, res) => {
@@ -34,7 +35,9 @@ router.get('/summary', async (req, res) => {
       verifiedAgencies: agencies.filter(user => user.verified).length,
       blockedUsers: users.filter(user => user.blocked).length,
       annunci: annunci.filter(isVisibleAnnuncio).length,
+      pendingAnnunci: annunci.filter(item => item.moderationStatus === 'pending').length,
       hiddenAnnunci: annunci.filter(item => item.moderationStatus === 'hidden').length,
+      rejectedAnnunci: annunci.filter(item => item.moderationStatus === 'rejected').length,
       conversations: conversations.length
     });
   } catch (error) {
@@ -143,7 +146,7 @@ router.get('/annunci', async (req, res) => {
 
 router.put('/annunci/:id/status', async (req, res) => {
   try {
-    const allowedStatuses = ['published', 'hidden'];
+    const allowedStatuses = ['pending', 'published', 'hidden', 'rejected'];
     const moderationStatus = req.body.status;
 
     if (!allowedStatuses.includes(moderationStatus)) {
@@ -157,14 +160,26 @@ router.put('/annunci/:id/status', async (req, res) => {
       return res.status(404).json({ message: 'Annuncio non trovato.' });
     }
 
+    const now = new Date().toISOString();
     annunci[index].moderationStatus = moderationStatus;
-    annunci[index].hiddenAt = moderationStatus === 'hidden' ? new Date().toISOString() : null;
-    annunci[index].updatedAt = new Date().toISOString();
+    annunci[index].updatedAt = now;
+    annunci[index].reviewedAt = ['published', 'hidden', 'rejected'].includes(moderationStatus) ? now : null;
+    annunci[index].reviewedBy = ['published', 'hidden', 'rejected'].includes(moderationStatus) ? req.user.id : null;
+    annunci[index].approvedAt = moderationStatus === 'published' ? now : null;
+    annunci[index].approvedBy = moderationStatus === 'published' ? req.user.id : null;
+    annunci[index].hiddenAt = moderationStatus === 'hidden' ? now : null;
+    annunci[index].rejectedAt = moderationStatus === 'rejected' ? now : null;
+    annunci[index].rejectedBy = moderationStatus === 'rejected' ? req.user.id : null;
 
     await writeData('annunci', annunci);
 
     res.json({
-      message: moderationStatus === 'hidden' ? 'Annuncio nascosto.' : 'Annuncio pubblicato.',
+      message: {
+        pending: 'Annuncio rimesso in revisione.',
+        published: 'Annuncio approvato e pubblicato.',
+        hidden: 'Annuncio nascosto.',
+        rejected: 'Annuncio rifiutato.'
+      }[moderationStatus],
       annuncio: annunci[index]
     });
   } catch (error) {

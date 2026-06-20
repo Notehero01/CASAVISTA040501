@@ -225,7 +225,7 @@ export const adminApi = {
 
   getAnnunci: () => api<any[]>('/admin/annunci'),
 
-  setAnnuncioStatus: (id: string, status: 'published' | 'hidden') =>
+  setAnnuncioStatus: (id: string, status: 'pending' | 'published' | 'hidden' | 'rejected') =>
     api<any>(`/admin/annunci/${id}/status`, {
       method: 'PUT',
       body: { status }
