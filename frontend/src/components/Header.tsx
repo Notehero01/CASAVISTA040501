@@ -163,7 +163,7 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                         <DropdownMenuItem asChild className="cursor-pointer">
                           <Link to="/profilo-agenzia">
                             <Building2 className="h-4 w-4 mr-2" />
-                            Profilo agenzia
+                            Profilo professionale
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -305,7 +305,7 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                     <Link to="/profilo-agenzia" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="outline" className="w-full justify-start">
                         <Building2 className="h-4 w-4 mr-2" />
-                        Profilo agenzia
+                        Profilo professionale
                       </Button>
                     </Link>
                   )}

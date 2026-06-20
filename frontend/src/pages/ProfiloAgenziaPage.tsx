@@ -44,6 +44,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
     whatsapp: '',
     logo: '',
     coverImage: '',
+    categoriaProfilo: 'agenzia',
     servizi: [] as string[],
     annoFondazione: '',
     condominiGestiti: ''
@@ -70,6 +71,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
           whatsapp: profile.whatsapp || '',
           logo: profile.logo || '',
           coverImage: profile.coverImage || '',
+          categoriaProfilo: profile.categoriaProfilo === 'amministrazione_condominiale' ? 'amministrazione_condominiale' : 'agenzia',
           servizi: Array.isArray(profile.servizi) ? profile.servizi : [],
           annoFondazione: profile.annoFondazione ? String(profile.annoFondazione) : '',
           condominiGestiti: profile.condominiGestiti ? String(profile.condominiGestiti) : ''
@@ -142,6 +144,16 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
     }));
   };
 
+  const setCategoriaProfilo = (categoriaProfilo: 'agenzia' | 'amministrazione_condominiale') => {
+    setFormData(prev => ({
+      ...prev,
+      categoriaProfilo,
+      servizi: categoriaProfilo === 'amministrazione_condominiale' && !prev.servizi.includes('Amministrazione condominiale')
+        ? [...prev.servizi, 'Amministrazione condominiale']
+        : prev.servizi
+    }));
+  };
+
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -186,7 +198,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
         const profile = await amministrazioniApi.getById(user.id);
         setPublicSlug(profile.slug || user.id);
       }
-      toast.success('Profilo agenzia aggiornato.');
+      toast.success('Profilo professionale aggiornato.');
     } catch (error: any) {
       toast.error(error.message || 'Impossibile salvare il profilo.');
     } finally {
@@ -209,10 +221,10 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
           <Card>
             <CardContent className="p-8 text-center">
               <Building2 className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-              <h1 className="text-2xl font-bold">Profilo riservato alle agenzie</h1>
-              <p className="mt-2 text-gray-600">Registrati come agenzia per creare la tua pagina pubblica.</p>
-              <Link to="/registrazione">
-                <Button className="mt-6 bg-[#e74c3c]">Crea account agenzia</Button>
+              <h1 className="text-2xl font-bold">Profilo riservato ai professionisti</h1>
+              <p className="mt-2 text-gray-600">Registrati come agenzia o amministrazione per creare la tua pagina pubblica.</p>
+              <Link to="/registrazione?tipo=agenzia">
+                <Button className="mt-6 bg-[#e74c3c]">Crea account professionale</Button>
               </Link>
             </CardContent>
           </Card>
@@ -226,8 +238,8 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Profilo agenzia</h1>
-            <p className="mt-1 text-gray-600">Completa la pagina pubblica che vedranno clienti e altre agenzie.</p>
+            <h1 className="text-3xl font-bold">Profilo professionale</h1>
+            <p className="mt-1 text-gray-600">Completa la pagina pubblica che vedranno clienti, agenzie e amministrazioni.</p>
           </div>
           {publicSlug && (
             <Link to={`/agenzia/${publicSlug}`}>
@@ -347,7 +359,35 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
             </CardHeader>
             <CardContent className="space-y-5">
               <div>
-                <Label>Nome agenzia *</Label>
+                <Label>Tipo profilo</Label>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setCategoriaProfilo('agenzia')}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+                      formData.categoriaProfilo === 'agenzia'
+                        ? 'border-[#e74c3c] bg-[#e74c3c] text-white'
+                        : 'border-gray-300 bg-white text-gray-700'
+                    }`}
+                  >
+                    Agenzia immobiliare
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCategoriaProfilo('amministrazione_condominiale')}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+                      formData.categoriaProfilo === 'amministrazione_condominiale'
+                        ? 'border-[#e74c3c] bg-[#e74c3c] text-white'
+                        : 'border-gray-300 bg-white text-gray-700'
+                    }`}
+                  >
+                    Amministrazione condominiale
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <Label>{formData.categoriaProfilo === 'amministrazione_condominiale' ? 'Nome amministrazione *' : 'Nome agenzia *'}</Label>
                 <Input
                   value={formData.ragioneSociale}
                   onChange={(e) => setFormData({ ...formData, ragioneSociale: e.target.value })}
@@ -361,7 +401,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
                   value={formData.descrizione}
                   onChange={(e) => setFormData({ ...formData, descrizione: e.target.value })}
                   className="min-h-[160px]"
-                  placeholder="Racconta zona, servizi e specializzazione dell'agenzia."
+                  placeholder="Racconta zona, servizi e specializzazione del profilo."
                 />
               </div>
 
@@ -431,7 +471,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
                     value={formData.sitoWeb}
                     onChange={(e) => setFormData({ ...formData, sitoWeb: e.target.value })}
                     className="pl-10"
-                    placeholder="www.agenzia.it"
+                    placeholder="www.tuosito.it"
                   />
                 </div>
               </div>
@@ -466,7 +506,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
               <CardContent className="space-y-4">
                 <div className="flex aspect-[16/9] items-center justify-center overflow-hidden rounded-lg border bg-gray-100">
                   {formData.coverImage ? (
-                    <img src={formData.coverImage} alt="Copertina agenzia" className="h-full w-full object-cover" />
+                    <img src={formData.coverImage} alt="Copertina profilo" className="h-full w-full object-cover" />
                   ) : (
                     <ImagePlus className="h-12 w-12 text-gray-300" />
                   )}
@@ -501,7 +541,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
               <CardContent className="space-y-4">
                 <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-gray-100">
                   {formData.logo ? (
-                    <img src={formData.logo} alt="Logo agenzia" className="h-full w-full object-cover" />
+                    <img src={formData.logo} alt="Logo profilo" className="h-full w-full object-cover" />
                   ) : (
                     <Building2 className="h-14 w-14 text-gray-300" />
                   )}
@@ -527,7 +567,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
                 </div>
                 <div className="flex items-start gap-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
                   <Mail className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>L'email dell'account resta visibile come contatto pubblico dell'agenzia.</p>
+                  <p>L'email dell'account resta visibile come contatto pubblico del profilo.</p>
                 </div>
                 <Button type="submit" className="w-full bg-[#e74c3c]" disabled={saving}>
                   <Save className="mr-2 h-4 w-4" />

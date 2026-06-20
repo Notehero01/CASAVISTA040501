@@ -47,6 +47,7 @@ function buildAgencyProfile(user, details = {}, annunci = [], options = {}) {
     slug: buildAgencySlug(user, details),
     nome: user.nome,
     cognome: user.cognome,
+    categoriaProfilo: details.categoriaProfilo || '',
     displayName,
     ragioneSociale: details.ragioneSociale || displayName,
     descrizione: details.descrizione || '',

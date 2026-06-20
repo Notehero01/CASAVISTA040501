@@ -89,6 +89,7 @@ router.post('/profile', auth, async (req, res) => {
       logo,
       coverImage,
       servizi,
+      categoriaProfilo,
       annoFondazione,
       condominiGestiti
     } = req.body;
@@ -118,6 +119,9 @@ router.post('/profile', auth, async (req, res) => {
       logo: logo !== undefined ? logo : (existingProfile.logo || ''),
       coverImage: coverImage !== undefined ? coverImage : (existingProfile.coverImage || ''),
       servizi: Array.isArray(servizi) ? servizi : (Array.isArray(existingProfile.servizi) ? existingProfile.servizi : []),
+      categoriaProfilo: ['agenzia', 'amministrazione_condominiale'].includes(categoriaProfilo)
+        ? categoriaProfilo
+        : (existingProfile.categoriaProfilo || ''),
       annoFondazione: annoFondazione !== undefined && annoFondazione !== '' ? parseInt(annoFondazione) : (existingProfile.annoFondazione || null),
       condominiGestiti: condominiGestiti !== undefined && condominiGestiti !== '' ? parseInt(condominiGestiti) : (existingProfile.condominiGestiti || 0),
       rating: existingProfile.rating || 0,

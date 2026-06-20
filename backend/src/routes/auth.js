@@ -30,11 +30,14 @@ function createPasswordResetToken() {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, nome, cognome, telefono, tipo = 'utente', privacyConsent, ragioneSociale } = req.body;
+    const { email, password, nome, cognome, telefono, tipo = 'utente', privacyConsent, ragioneSociale, categoriaProfilo, servizi } = req.body;
     const accountType = ['utente', 'amministrazione'].includes(tipo) ? tipo : 'utente';
+    const profileCategory = categoriaProfilo === 'amministrazione_condominiale' ? 'amministrazione_condominiale' : 'agenzia';
     const agencyName = String(ragioneSociale || nome || '').trim();
     const firstName = accountType === 'amministrazione' ? agencyName : String(nome || '').trim();
-    const lastName = accountType === 'amministrazione' ? String(cognome || 'Agenzia').trim() : String(cognome || '').trim();
+    const lastName = accountType === 'amministrazione'
+      ? String(cognome || (profileCategory === 'amministrazione_condominiale' ? 'Amministrazione' : 'Agenzia')).trim()
+      : String(cognome || '').trim();
 
     // Validazione
     if (!email || !password || !firstName || !lastName) {
@@ -80,8 +83,13 @@ router.post('/register', async (req, res) => {
     if (accountType === 'amministrazione') {
       const amministrazioni = await readData('amministrazioni');
       if (!amministrazioni.find(profile => profile.userId === newUser.id)) {
+        const requestedServices = Array.isArray(servizi) ? servizi.filter(service => typeof service === 'string') : [];
+        const defaultServices = profileCategory === 'amministrazione_condominiale' ? ['Amministrazione condominiale'] : [];
+        const profileServices = [...new Set([...defaultServices, ...requestedServices])];
+
         amministrazioni.push({
           userId: newUser.id,
+          categoriaProfilo: profileCategory,
           ragioneSociale: agencyName,
           descrizione: '',
           citta: '',
@@ -92,7 +100,7 @@ router.post('/register', async (req, res) => {
           whatsapp: '',
           logo: '',
           coverImage: '',
-          servizi: [],
+          servizi: profileServices,
           annoFondazione: null,
           condominiGestiti: 0,
           rating: 0,

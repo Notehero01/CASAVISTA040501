@@ -1,21 +1,35 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Building2, Mail, Lock, User, Phone, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Building2, Mail, Lock, Phone, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 interface RegistrazionePageProps {
   onRegister: (data: any) => Promise<{ success: boolean; message: string }>;
 }
 
+type TipoRegistrazione = 'utente' | 'agenzia' | 'amministrazione_condominiale';
+
+function getInitialTipo(searchParams: URLSearchParams): TipoRegistrazione {
+  const requested = searchParams.get('tipo');
+
+  if (requested === 'agenzia') return 'agenzia';
+  if (requested === 'amministrazione' || requested === 'amministrazione_condominiale') {
+    return 'amministrazione_condominiale';
+  }
+
+  return 'utente';
+}
+
 export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
-  const [tipo, setTipo] = useState<'utente' | 'amministrazione'>('utente');
+  const [tipo, setTipo] = useState<TipoRegistrazione>(() => getInitialTipo(searchParams));
   const [formData, setFormData] = useState({
     nome: '',
     cognome: '',
@@ -38,18 +52,20 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
       toast.error('Devi accettare Privacy Policy e Termini di servizio');
       return;
     }
-    if (tipo === 'amministrazione' && !formData.ragioneSociale.trim()) {
-      toast.error('Inserisci il nome dell\'agenzia');
+    if (tipo !== 'utente' && !formData.ragioneSociale.trim()) {
+      toast.error(tipo === 'agenzia' ? 'Inserisci il nome dell\'agenzia' : 'Inserisci il nome dell\'amministrazione');
       return;
     }
     setLoading(true);
-    const registerData = tipo === 'amministrazione'
+    const registerData = tipo !== 'utente'
       ? {
           ...formData,
           nome: formData.ragioneSociale,
-          cognome: 'Agenzia',
+          cognome: tipo === 'agenzia' ? 'Agenzia' : 'Amministrazione',
           ragioneSociale: formData.ragioneSociale,
-          tipo
+          tipo: 'amministrazione',
+          categoriaProfilo: tipo,
+          servizi: tipo === 'amministrazione_condominiale' ? ['Amministrazione condominiale'] : []
         }
       : { ...formData, tipo };
     const result = await onRegister(registerData);
@@ -78,22 +94,34 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
             <CardTitle className="text-2xl">Crea il tuo account</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs value={tipo} onValueChange={(v) => setTipo(v as 'utente' | 'amministrazione')}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="utente">Utente</TabsTrigger>
-                <TabsTrigger value="amministrazione">Agenzia</TabsTrigger>
+            <Tabs value={tipo} onValueChange={(v) => setTipo(v as TipoRegistrazione)}>
+              <TabsList className="mb-6 grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-3">
+                <TabsTrigger value="utente" className="min-h-10 whitespace-normal px-2 text-center leading-tight">
+                  Privato
+                </TabsTrigger>
+                <TabsTrigger value="agenzia" className="min-h-10 whitespace-normal px-2 text-center leading-tight">
+                  Agenzia
+                </TabsTrigger>
+                <TabsTrigger value="amministrazione_condominiale" className="min-h-10 whitespace-normal px-2 text-center leading-tight">
+                  Amministrazione
+                </TabsTrigger>
               </TabsList>
             </Tabs>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {tipo === 'amministrazione' ? (
+              {tipo !== 'utente' ? (
                 <div>
-                  <Label>Nome agenzia *</Label>
+                  <Label>{tipo === 'agenzia' ? 'Nome agenzia *' : 'Nome amministrazione *'}</Label>
                   <Input
                     value={formData.ragioneSociale}
                     onChange={(e) => setFormData({ ...formData, ragioneSociale: e.target.value })}
-                    placeholder="Es: Immobiliare Modena Centro"
+                    placeholder={tipo === 'agenzia' ? 'Es: Immobiliare Modena Centro' : 'Es: Studio Amministrazioni Rossi'}
                     required
                   />
+                  <p className="mt-2 text-sm text-gray-500">
+                    {tipo === 'agenzia'
+                      ? 'Creerai una pagina pubblica nella sezione Agenzie.'
+                      : 'Creerai una pagina pubblica nella sezione Amministrazioni condominiali.'}
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">

@@ -14,6 +14,7 @@ interface Agenzia {
   nome: string;
   cognome: string;
   displayName?: string;
+  categoriaProfilo?: string;
   email: string;
   telefono?: string;
   citta?: string;
@@ -23,6 +24,16 @@ interface Agenzia {
   logo?: string;
   coverImage?: string;
   annunciCount?: number;
+}
+
+function isCondominiumAdministration(agenzia: Agenzia) {
+  if (agenzia.categoriaProfilo === 'amministrazione_condominiale') return true;
+  if (agenzia.categoriaProfilo === 'agenzia') return false;
+
+  return (agenzia.servizi || []).some(servizio => {
+    const normalized = servizio.toLowerCase();
+    return normalized.includes('amministrazione') || normalized.includes('condomin');
+  });
 }
 
 export function AgenziePage() {
@@ -37,7 +48,9 @@ export function AgenziePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = agenzie.filter((agenzia) => {
+  const agenzieImmobiliari = agenzie.filter(agenzia => !isCondominiumAdministration(agenzia));
+
+  const filtered = agenzieImmobiliari.filter((agenzia) => {
     const haystack = `${agenzia.nome} ${agenzia.cognome} ${agenzia.ragioneSociale || ''} ${agenzia.citta || ''}`.toLowerCase();
     return !searchQuery || haystack.includes(searchQuery.toLowerCase());
   });
@@ -71,7 +84,7 @@ export function AgenziePage() {
             Trova le agenzie registrate su CasaVista e consulta gli annunci pubblicati.
           </p>
           <div className="mt-6">
-            <Link to="/registrazione">
+            <Link to="/registrazione?tipo=agenzia">
               <Button className="bg-[#e74c3c]">
                 <Building2 className="mr-2 h-4 w-4" />Registra la tua agenzia
               </Button>
@@ -106,7 +119,7 @@ export function AgenziePage() {
                 <Building2 className="mx-auto mb-3 h-10 w-10 text-gray-300" />
                 <h2 className="text-lg font-semibold text-gray-900">Nessuna agenzia trovata</h2>
                 <p className="mt-2 text-gray-500">Le agenzie compariranno qui appena completano il profilo.</p>
-                <Link to="/registrazione">
+                <Link to="/registrazione?tipo=agenzia">
                   <Button className="mt-5 bg-[#e74c3c]">Registra la tua agenzia</Button>
                 </Link>
               </CardContent>

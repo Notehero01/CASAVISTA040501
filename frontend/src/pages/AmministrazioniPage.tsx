@@ -23,6 +23,7 @@ interface Amministrazione {
   nome: string;
   cognome: string;
   displayName?: string;
+  categoriaProfilo?: string;
   email: string;
   telefono?: string;
   citta?: string;
@@ -36,6 +37,9 @@ interface Amministrazione {
 }
 
 function isCondominiumAdministration(amministrazione: Amministrazione) {
+  if (amministrazione.categoriaProfilo === 'amministrazione_condominiale') return true;
+  if (amministrazione.categoriaProfilo === 'agenzia') return false;
+
   return (amministrazione.servizi || []).some(servizio => {
     const normalized = servizio.toLowerCase();
     return normalized.includes('amministrazione') || normalized.includes('condomin');
@@ -97,7 +101,7 @@ export function AmministrazioniPage() {
             Trova profili specializzati in amministrazione condominiale registrati su CasaVista.
           </p>
           <div className="mt-6">
-            <Link to="/registrazione">
+            <Link to="/registrazione?tipo=amministrazione">
               <Button className="bg-[#e74c3c]">
                 <Building className="h-4 w-4 mr-2" />Registra il tuo profilo
               </Button>
@@ -144,7 +148,7 @@ export function AmministrazioniPage() {
                 <Building className="mx-auto mb-3 h-10 w-10 text-gray-300" />
                 <h2 className="text-lg font-semibold text-gray-900">Nessuna amministrazione trovata</h2>
                 <p className="mt-2 text-gray-500">I profili con servizio di amministrazione condominiale compariranno qui.</p>
-                <Link to="/registrazione">
+                <Link to="/registrazione?tipo=amministrazione">
                   <Button className="mt-5 bg-[#e74c3c]">Registra il tuo profilo</Button>
                 </Link>
               </CardContent>
