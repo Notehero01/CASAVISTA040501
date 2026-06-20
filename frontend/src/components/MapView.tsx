@@ -470,7 +470,7 @@ export function MapView({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm" style={{ height }}>
+    <div className="relative isolate z-0 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm" style={{ height }}>
       <div className="absolute left-3 right-3 top-3 z-[600] flex max-w-md gap-2 sm:left-4 sm:right-auto sm:w-96">
         <div className="flex h-11 flex-1 items-center rounded-full border border-gray-200 bg-white px-4 shadow-lg">
           <Search className="h-4 w-4 shrink-0 text-gray-400" />
