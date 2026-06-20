@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     const annunci = await readData('annunci');
 
     let amministrazioni = users
-      .filter(u => u.tipo === 'amministrazione')
+      .filter(u => u.tipo === 'amministrazione' && !u.blocked && !u.deletedAt)
       .map(u => {
         const details = amministrazioniData.find(a => a.userId === u.id);
         return buildAgencyProfile(u, details, annunci);
@@ -52,7 +52,7 @@ router.get('/:id', async (req, res) => {
     const annunci = await readData('annunci');
     
     const user = users.find(u => {
-      if (u.tipo !== 'amministrazione') return false;
+      if (u.tipo !== 'amministrazione' || u.blocked || u.deletedAt) return false;
       const details = amministrazioniData.find(a => a.userId === u.id);
       return matchesAgencyIdentifier(u, details, req.params.id);
     });

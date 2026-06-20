@@ -34,6 +34,13 @@ interface Amministrazione {
   annunciCount?: number;
 }
 
+function isCondominiumAdministration(amministrazione: Amministrazione) {
+  return (amministrazione.servizi || []).some(servizio => {
+    const normalized = servizio.toLowerCase();
+    return normalized.includes('amministrazione') || normalized.includes('condomin');
+  });
+}
+
 export function AmministrazioniPage() {
   const [amministrazioni, setAmministrazioni] = useState<Amministrazione[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,7 +54,9 @@ export function AmministrazioniPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = amministrazioni.filter((a) => {
+  const amministrazioniCondominiali = amministrazioni.filter(isCondominiumAdministration);
+
+  const filtered = amministrazioniCondominiali.filter((a) => {
     const haystack = `${a.nome} ${a.cognome} ${a.ragioneSociale || ''} ${a.citta || ''}`.toLowerCase();
     const matchSearch = !searchQuery || haystack.includes(searchQuery.toLowerCase());
     const matchServizi = filtroServizi.length === 0 || filtroServizi.every(s => a.servizi?.includes(s));
@@ -65,14 +74,14 @@ export function AmministrazioniPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#e74c3c]/10 rounded-full mb-4">
             <Building className="h-8 w-8 text-[#e74c3c]" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Agenzie e Amministrazioni</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Amministrazioni condominiali</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Trova agenzie immobiliari e amministrazioni registrate su CasaVista.
+            Trova profili specializzati in amministrazione condominiale registrati su CasaVista.
           </p>
           <div className="mt-6">
             <Link to="/registrazione">
               <Button className="bg-[#e74c3c]">
-                <Building className="h-4 w-4 mr-2" />Registra la tua amministrazione
+                <Building className="h-4 w-4 mr-2" />Registra il tuo profilo
               </Button>
             </Link>
           </div>
@@ -116,9 +125,9 @@ export function AmministrazioniPage() {
               <CardContent className="p-8 text-center">
                 <Building className="mx-auto mb-3 h-10 w-10 text-gray-300" />
                 <h2 className="text-lg font-semibold text-gray-900">Nessuna amministrazione trovata</h2>
-                <p className="mt-2 text-gray-500">Le agenzie registrate compariranno qui appena completano il profilo.</p>
+                <p className="mt-2 text-gray-500">I profili con servizio di amministrazione condominiale compariranno qui.</p>
                 <Link to="/registrazione">
-                  <Button className="mt-5 bg-[#e74c3c]">Registra la tua amministrazione</Button>
+                  <Button className="mt-5 bg-[#e74c3c]">Registra il tuo profilo</Button>
                 </Link>
               </CardContent>
             </Card>

@@ -44,6 +44,7 @@ export function Footer() {
             <ul className="space-y-2">
               <li><Link to="/valutazione" className="text-gray-400 hover:text-white text-sm">Valuta Immobile</Link></li>
               <li><Link to="/mutuo" className="text-gray-400 hover:text-white text-sm">Calcola Mutuo</Link></li>
+              <li><Link to="/agenzie" className="text-gray-400 hover:text-white text-sm">Agenzie</Link></li>
               <li><Link to="/amministrazioni" className="text-gray-400 hover:text-white text-sm">Amministrazioni</Link></li>
             </ul>
           </div>

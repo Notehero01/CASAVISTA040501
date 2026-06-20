@@ -42,6 +42,7 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
   const navLinks = [
     { to: '/', label: 'Home', icon: Home },
     { to: '/cerca', label: 'Cerca', icon: Search },
+    { to: '/agenzie', label: 'Agenzie', icon: Building2 },
     { to: '/valutazione', label: 'Valuta', icon: BarChart3 },
     { to: '/mutuo', label: 'Mutuo', icon: Calculator },
     { to: '/amministrazioni', label: 'Amministrazioni', icon: Building },

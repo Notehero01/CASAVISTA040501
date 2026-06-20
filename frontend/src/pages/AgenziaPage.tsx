@@ -101,7 +101,7 @@ export function AgenziaPage() {
           <Building2 className="mx-auto h-12 w-12 text-gray-300" />
           <h1 className="mt-4 text-2xl font-bold">Agenzia non trovata</h1>
           <p className="mt-2 text-gray-600">La pagina cercata non esiste o non e piu disponibile.</p>
-          <Link to="/amministrazioni">
+          <Link to="/agenzie">
             <Button className="mt-6 bg-[#e74c3c]">Torna alle agenzie</Button>
           </Link>
         </div>
@@ -126,7 +126,7 @@ export function AgenziaPage() {
 
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
-          <Link to="/amministrazioni" className="inline-flex items-center text-gray-600">
+          <Link to="/agenzie" className="inline-flex items-center text-gray-600">
             <ArrowLeft className="h-4 w-4 mr-2" />Torna alle agenzie
           </Link>
         </div>
@@ -134,6 +134,11 @@ export function AgenziaPage() {
 
       <section className="bg-white">
         <div className="container mx-auto px-4 py-8 md:py-10">
+          {agenzia.coverImage && (
+            <div className="mb-8 overflow-hidden rounded-lg border bg-gray-100">
+              <img src={agenzia.coverImage} alt={`Copertina ${agenzia.displayName}`} className="h-48 w-full object-cover sm:h-64 lg:h-72" />
+            </div>
+          )}
           <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:items-end">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
               <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-100">

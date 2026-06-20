@@ -271,7 +271,7 @@ router.get('/user/:id', async (req, res) => {
     const users = await readData('users');
     const user = users.find(u => u.id === req.params.id);
     
-    if (!user) {
+    if (!user || user.blocked || user.deletedAt) {
       return res.status(404).json({ message: 'Utente non trovato.' });
     }
     

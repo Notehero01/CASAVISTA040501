@@ -121,6 +121,69 @@ router.put('/users/:id/verify', async (req, res) => {
   }
 });
 
+router.delete('/users/:id', async (req, res) => {
+  try {
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({ message: 'Non puoi eliminare il tuo account admin.' });
+    }
+
+    const users = await readData('users');
+    const userToDelete = users.find(user => user.id === req.params.id);
+
+    if (!userToDelete) {
+      return res.status(404).json({ message: 'Utente non trovato.' });
+    }
+
+    if (userToDelete.tipo === 'admin') {
+      return res.status(400).json({ message: 'Gli account admin non possono essere eliminati da qui.' });
+    }
+
+    const userId = userToDelete.id;
+    const now = new Date().toISOString();
+
+    await writeData('users', users.filter(user => user.id !== userId));
+
+    const amministrazioni = await readData('amministrazioni');
+    await writeData('amministrazioni', amministrazioni.filter(profile => profile.userId !== userId));
+
+    const annunci = await readData('annunci');
+    const updatedAnnunci = annunci.map(annuncio => {
+      if (annuncio.userId !== userId) return annuncio;
+
+      return {
+        ...annuncio,
+        moderationStatus: 'deleted',
+        deletedAt: now,
+        updatedAt: now,
+        nome_contatto: 'Account eliminato',
+        telefono_contatto: null,
+        email_contatto: null
+      };
+    });
+    await writeData('annunci', updatedAnnunci);
+
+    const conversations = await readData('conversations');
+    const removedConversationIds = conversations
+      .filter(conversation => Array.isArray(conversation.participants) && conversation.participants.includes(userId))
+      .map(conversation => conversation.id);
+    await writeData(
+      'conversations',
+      conversations.filter(conversation => !removedConversationIds.includes(conversation.id))
+    );
+
+    const messages = await readData('messages');
+    await writeData(
+      'messages',
+      messages.filter(message => !removedConversationIds.includes(message.conversationId) && message.senderId !== userId)
+    );
+
+    res.json({ message: 'Profilo eliminato.' });
+  } catch (error) {
+    console.error('Admin delete user error:', error);
+    res.status(500).json({ message: 'Errore del server.' });
+  }
+});
+
 router.get('/annunci', async (req, res) => {
   try {
     const annunci = await readData('annunci');

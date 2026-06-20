@@ -223,6 +223,8 @@ export const adminApi = {
       body: { verified }
     }),
 
+  deleteUser: (id: string) => api<any>(`/admin/users/${id}`, { method: 'DELETE' }),
+
   getAnnunci: () => api<any[]>('/admin/annunci'),
 
   setAnnuncioStatus: (id: string, status: 'pending' | 'published' | 'hidden' | 'rejected') =>

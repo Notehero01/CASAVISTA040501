@@ -128,6 +128,22 @@ export function AdminPage() {
     }
   };
 
+  const deleteUser = async (user: AdminUser) => {
+    const label = user.tipo === 'amministrazione' ? 'agenzia' : 'utente';
+    const displayName = `${user.nome} ${user.cognome}`.trim() || user.email;
+    const message = `Eliminare il profilo ${label} "${displayName}"? Gli annunci collegati non saranno piu visibili.`;
+
+    if (!window.confirm(message)) return;
+
+    try {
+      await adminApi.deleteUser(user.id);
+      toast.success('Profilo eliminato');
+      loadAdminData();
+    } catch (error: any) {
+      toast.error(error.message || 'Operazione non riuscita');
+    }
+  };
+
   const setAnnuncioStatus = async (annuncio: AdminAnnuncio, status: 'pending' | 'published' | 'hidden' | 'rejected') => {
     try {
       await adminApi.setAnnuncioStatus(annuncio.id, status);
@@ -331,7 +347,7 @@ export function AdminPage() {
                     <td className="px-4 py-3 text-gray-600">{user.email}</td>
                     <td className="px-4 py-3">
                       <StatusBadge tone={user.tipo === 'admin' ? 'blue' : user.tipo === 'amministrazione' ? 'green' : 'gray'}>
-                        {user.tipo}
+                        {user.tipo === 'amministrazione' ? 'agenzia' : user.tipo}
                       </StatusBadge>
                     </td>
                     <td className="px-4 py-3">{user.annunciCount ?? 0}</td>
@@ -346,10 +362,16 @@ export function AdminPage() {
                           {user.verified ? 'Rimuovi' : 'Verifica'}
                         </Button>
                         {user.tipo !== 'admin' && (
-                          <Button size="sm" variant="outline" onClick={() => setUserBlocked(user, !user.blocked)}>
-                            <Ban className="mr-1 h-4 w-4" />
-                            {user.blocked ? 'Sblocca' : 'Blocca'}
-                          </Button>
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => setUserBlocked(user, !user.blocked)}>
+                              <Ban className="mr-1 h-4 w-4" />
+                              {user.blocked ? 'Sblocca' : 'Blocca'}
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-600" onClick={() => deleteUser(user)}>
+                              <Trash2 className="mr-1 h-4 w-4" />
+                              Elimina profilo
+                            </Button>
+                          </>
                         )}
                       </div>
                     </td>

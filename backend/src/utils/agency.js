@@ -19,7 +19,8 @@ function buildAgencySlug(user, details = {}) {
 }
 
 function isPublicAnnuncio(annuncio) {
-  return !annuncio.deletedAt && !['hidden', 'deleted'].includes(annuncio.moderationStatus);
+  const status = annuncio.moderationStatus || 'published';
+  return !annuncio.deletedAt && status === 'published';
 }
 
 function matchesAgencyIdentifier(user, details, identifier) {

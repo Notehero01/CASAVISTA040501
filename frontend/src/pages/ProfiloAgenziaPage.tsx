@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BadgeCheck, Building2, Eye, Globe, ImagePlus, Mail, MapPin, Phone, Save } from 'lucide-react';
+import { BadgeCheck, BarChart3, Building2, Eye, Globe, Home, ImagePlus, Mail, MapPin, Percent, Phone, Save, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { amministrazioniApi, uploadApi } from '@/utils/api';
+import { amministrazioniApi, annunciApi, uploadApi } from '@/utils/api';
 import { toast } from 'sonner';
 import type { User } from '@/hooks/useAuth';
+import type { Annuncio } from '@/types/annuncio';
 
 const SERVIZI_AGENZIA = [
   'Compravendite',
@@ -29,7 +30,9 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [publicSlug, setPublicSlug] = useState('');
+  const [ownAnnunci, setOwnAnnunci] = useState<Annuncio[]>([]);
   const [formData, setFormData] = useState({
     ragioneSociale: '',
     descrizione: '',
@@ -40,6 +43,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
     telefono: '',
     whatsapp: '',
     logo: '',
+    coverImage: '',
     servizi: [] as string[],
     annoFondazione: '',
     condominiGestiti: ''
@@ -51,8 +55,9 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
       return;
     }
 
-    amministrazioniApi.getById(user.id)
-      .then((profile) => {
+    const loadAgencyData = async () => {
+      try {
+        const profile = await amministrazioniApi.getById(user.id);
         setPublicSlug(profile.slug || user.id);
         setFormData({
           ragioneSociale: profile.ragioneSociale || `${user.nome} ${user.cognome}`,
@@ -64,20 +69,69 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
           telefono: profile.telefono || user.telefono || '',
           whatsapp: profile.whatsapp || '',
           logo: profile.logo || '',
+          coverImage: profile.coverImage || '',
           servizi: Array.isArray(profile.servizi) ? profile.servizi : [],
           annoFondazione: profile.annoFondazione ? String(profile.annoFondazione) : '',
           condominiGestiti: profile.condominiGestiti ? String(profile.condominiGestiti) : ''
         });
-      })
-      .catch(() => {
+      } catch {
         setFormData(prev => ({
           ...prev,
           ragioneSociale: `${user.nome} ${user.cognome}`,
           telefono: user.telefono || ''
         }));
-      })
-      .finally(() => setLoading(false));
+      }
+
+      try {
+        const data = await annunciApi.getMine();
+        setOwnAnnunci(data);
+      } catch {
+        setOwnAnnunci([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAgencyData();
   }, [user]);
+
+  const agencyStats = useMemo(() => {
+    const totalAnnunci = ownAnnunci.length;
+    const totalViews = ownAnnunci.reduce((sum, annuncio) => sum + Number(annuncio.visualizzazioni || 0), 0);
+    const published = ownAnnunci.filter(annuncio => (annuncio.moderationStatus || 'published') === 'published').length;
+    const pending = ownAnnunci.filter(annuncio => annuncio.moderationStatus === 'pending').length;
+    const hidden = ownAnnunci.filter(annuncio => annuncio.moderationStatus === 'hidden' || annuncio.moderationStatus === 'rejected').length;
+    const vendita = ownAnnunci.filter(annuncio => annuncio.tipo === 'vendita').length;
+    const affitto = ownAnnunci.filter(annuncio => annuncio.tipo === 'affitto').length;
+    const averageViews = totalAnnunci > 0 ? Math.round(totalViews / totalAnnunci) : 0;
+    const onlinePercent = totalAnnunci > 0 ? Math.round((published / totalAnnunci) * 100) : 0;
+    const maxViews = Math.max(1, ...ownAnnunci.map(annuncio => Number(annuncio.visualizzazioni || 0)));
+    const topAnnunci = [...ownAnnunci]
+      .sort((a, b) => Number(b.visualizzazioni || 0) - Number(a.visualizzazioni || 0))
+      .slice(0, 5);
+
+    const typeRows = [
+      { label: 'Vendita', value: vendita, percent: totalAnnunci > 0 ? Math.round((vendita / totalAnnunci) * 100) : 0, className: 'bg-[#e74c3c]' },
+      { label: 'Affitto', value: affitto, percent: totalAnnunci > 0 ? Math.round((affitto / totalAnnunci) * 100) : 0, className: 'bg-blue-600' }
+    ];
+
+    const statusRows = [
+      { label: 'Online', value: published, percent: onlinePercent, className: 'bg-green-600' },
+      { label: 'In revisione', value: pending, percent: totalAnnunci > 0 ? Math.round((pending / totalAnnunci) * 100) : 0, className: 'bg-amber-500' },
+      { label: 'Nascosti o da correggere', value: hidden, percent: totalAnnunci > 0 ? Math.round((hidden / totalAnnunci) * 100) : 0, className: 'bg-gray-500' }
+    ];
+
+    return {
+      totalAnnunci,
+      totalViews,
+      averageViews,
+      onlinePercent,
+      topAnnunci,
+      maxViews,
+      typeRows,
+      statusRows
+    };
+  }, [ownAnnunci]);
 
   const toggleServizio = (servizio: string) => {
     setFormData(prev => ({
@@ -101,6 +155,23 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
       toast.error(error.message || 'Impossibile caricare il logo.');
     } finally {
       setUploadingLogo(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCover(true);
+    try {
+      const result = await uploadApi.uploadImage(file);
+      setFormData(prev => ({ ...prev, coverImage: result.url }));
+      toast.success('Copertina caricata.');
+    } catch (error: any) {
+      toast.error(error.message || 'Impossibile caricare la copertina.');
+    } finally {
+      setUploadingCover(false);
       event.target.value = '';
     }
   };
@@ -152,7 +223,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-5xl">
+      <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Profilo agenzia</h1>
@@ -166,6 +237,106 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
             </Link>
           )}
         </div>
+
+        <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-lg border bg-white p-4">
+            <Home className="mb-3 h-5 w-5 text-[#e74c3c]" />
+            <p className="text-2xl font-bold text-gray-900">{agencyStats.totalAnnunci}</p>
+            <p className="text-sm text-gray-500">Annunci caricati</p>
+          </div>
+          <div className="rounded-lg border bg-white p-4">
+            <Eye className="mb-3 h-5 w-5 text-blue-600" />
+            <p className="text-2xl font-bold text-gray-900">{agencyStats.totalViews.toLocaleString('it-IT')}</p>
+            <p className="text-sm text-gray-500">Visualizzazioni totali</p>
+          </div>
+          <div className="rounded-lg border bg-white p-4">
+            <TrendingUp className="mb-3 h-5 w-5 text-green-600" />
+            <p className="text-2xl font-bold text-gray-900">{agencyStats.averageViews}</p>
+            <p className="text-sm text-gray-500">Media viste per annuncio</p>
+          </div>
+          <div className="rounded-lg border bg-white p-4">
+            <Percent className="mb-3 h-5 w-5 text-purple-600" />
+            <p className="text-2xl font-bold text-gray-900">{agencyStats.onlinePercent}%</p>
+            <p className="text-sm text-gray-500">Annunci online</p>
+          </div>
+        </section>
+
+        <section className="mb-6 grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <BarChart3 className="h-5 w-5 text-[#e74c3c]" />Panoramica annunci
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-3">
+                {agencyStats.statusRows.map(row => (
+                  <div key={row.label}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="text-gray-600">{row.label}</span>
+                      <span className="font-medium text-gray-900">{row.value} ({row.percent}%)</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                      <div className={`h-full rounded-full ${row.className}`} style={{ width: `${row.percent}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t pt-5">
+                <p className="mb-3 text-sm font-medium text-gray-700">Vendita / affitto</p>
+                <div className="space-y-3">
+                  {agencyStats.typeRows.map(row => (
+                    <div key={row.label}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="text-gray-600">{row.label}</span>
+                        <span className="font-medium text-gray-900">{row.value} ({row.percent}%)</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                        <div className={`h-full rounded-full ${row.className}`} style={{ width: `${row.percent}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Eye className="h-5 w-5 text-blue-600" />Annunci piu visti
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {agencyStats.topAnnunci.length === 0 ? (
+                <div className="rounded-lg bg-gray-50 p-6 text-center text-sm text-gray-500">
+                  Pubblica il primo annuncio per vedere le statistiche.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {agencyStats.topAnnunci.map(annuncio => {
+                    const views = Number(annuncio.visualizzazioni || 0);
+                    const percent = Math.max(4, Math.round((views / agencyStats.maxViews) * 100));
+
+                    return (
+                      <div key={annuncio.id}>
+                        <div className="mb-2 flex items-start justify-between gap-3">
+                          <Link to={`/annuncio/${annuncio.slug || annuncio.id}`} className="line-clamp-1 text-sm font-medium text-gray-900 hover:text-[#e74c3c]">
+                            {annuncio.titolo}
+                          </Link>
+                          <span className="shrink-0 text-sm font-semibold text-gray-700">{views.toLocaleString('it-IT')} viste</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                          <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
 
         <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[1fr_300px]">
           <Card>
@@ -288,6 +459,41 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
           </Card>
 
           <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Copertina</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex aspect-[16/9] items-center justify-center overflow-hidden rounded-lg border bg-gray-100">
+                  {formData.coverImage ? (
+                    <img src={formData.coverImage} alt="Copertina agenzia" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImagePlus className="h-12 w-12 text-gray-300" />
+                  )}
+                </div>
+                <label className="block">
+                  <span className="sr-only">Carica copertina</span>
+                  <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                  <Button type="button" variant="outline" className="w-full" disabled={uploadingCover} asChild>
+                    <span>
+                      <ImagePlus className="mr-2 h-4 w-4" />
+                      {uploadingCover ? 'Caricamento...' : 'Carica copertina'}
+                    </span>
+                  </Button>
+                </label>
+                {formData.coverImage && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full text-gray-600"
+                    onClick={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
+                  >
+                    Rimuovi copertina
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Logo</CardTitle>
