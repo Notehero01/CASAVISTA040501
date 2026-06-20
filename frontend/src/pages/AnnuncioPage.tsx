@@ -490,14 +490,14 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
 
       {isLightboxOpen && (
         <div
-          className="fixed inset-0 z-[100] bg-black/94 p-3 text-white sm:p-4"
+          className="fixed inset-0 z-[1100] flex flex-col bg-black/95 text-white [padding-bottom:env(safe-area-inset-bottom)] [padding-top:env(safe-area-inset-top)]"
           role="dialog"
           aria-modal="true"
           onClick={(event) => {
             if (event.target === event.currentTarget) closeLightbox();
           }}
         >
-          <div className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between gap-3 sm:left-4 sm:right-4 sm:top-4">
+          <div className="z-20 flex shrink-0 items-center justify-between gap-3 px-3 py-3 sm:px-5 sm:py-4">
             <div className="min-w-0 text-sm text-white/75">
               <p className="truncate font-medium text-white">{annuncio.titolo}</p>
               <p>{activeImageIndex + 1}/{immagini.length || 1}</p>
@@ -505,51 +505,52 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
             <button
               type="button"
               onClick={closeLightbox}
-              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-white/12 px-4 text-sm font-semibold text-white transition-colors hover:bg-white/22"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/22"
               aria-label="Chiudi foto"
             >
               <X className="h-5 w-5" />
-              Chiudi
             </button>
           </div>
 
-          {hasMultipleImages && (
-            <>
-              <button
-                type="button"
-                onClick={showPreviousImage}
-                className="absolute left-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/14 text-white transition-colors hover:bg-white/24 sm:left-5 sm:h-14 sm:w-14"
-                aria-label="Foto precedente nel viewer"
-              >
-                <ChevronLeft className="h-8 w-8" />
-              </button>
-              <button
-                type="button"
-                onClick={showNextImage}
-                className="absolute right-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/14 text-white transition-colors hover:bg-white/24 sm:right-5 sm:h-14 sm:w-14"
-                aria-label="Foto successiva nel viewer"
-              >
-                <ChevronRight className="h-8 w-8" />
-              </button>
-            </>
-          )}
-
-          <div className="mx-auto flex h-full max-w-6xl flex-col gap-3 pt-16 sm:pt-20" onClick={(event) => event.stopPropagation()}>
+          <div className="relative flex min-h-0 flex-1 items-center justify-center px-0 sm:px-5" onClick={(event) => event.stopPropagation()}>
+            {hasMultipleImages && (
+              <>
+                <button
+                  type="button"
+                  onClick={showPreviousImage}
+                  className="absolute left-2 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/65 sm:left-8 sm:h-14 sm:w-14"
+                  aria-label="Foto precedente nel viewer"
+                >
+                  <ChevronLeft className="h-7 w-7 sm:h-8 sm:w-8" />
+                </button>
+                <button
+                  type="button"
+                  onClick={showNextImage}
+                  className="absolute right-2 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/65 sm:right-8 sm:h-14 sm:w-14"
+                  aria-label="Foto successiva nel viewer"
+                >
+                  <ChevronRight className="h-7 w-7 sm:h-8 sm:w-8" />
+                </button>
+              </>
+            )}
             <WatermarkedImage
               src={activeImage}
               alt={`${annuncio.titolo} - foto ${activeImageIndex + 1}`}
               fit="contain"
-              className="min-h-0 flex-1 bg-black"
+              className="h-full min-h-0 w-full max-w-6xl bg-black"
               watermarkClassName="text-white/20 mix-blend-normal"
             />
-            {hasMultipleImages && (
-              <div className="flex max-h-24 gap-2 overflow-x-auto rounded-xl bg-white/8 p-2">
+          </div>
+
+          {hasMultipleImages && (
+            <div className="shrink-0 px-3 pb-3 pt-2 sm:px-5 sm:pb-4" onClick={(event) => event.stopPropagation()}>
+              <div className="mx-auto flex max-h-24 max-w-6xl gap-2 overflow-x-auto rounded-xl bg-white/8 p-2">
                 {immagini.map((img, index) => (
                   <button
                     key={`${img}-viewer-${index}`}
                     type="button"
                     onClick={() => setActiveImageIndex(index)}
-                    className={`h-16 w-24 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors sm:h-20 sm:w-28 ${
+                    className={`h-14 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors sm:h-20 sm:w-28 ${
                       activeImageIndex === index ? 'border-white' : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
                     aria-label={`Apri foto ${index + 1} nel viewer`}
@@ -558,8 +559,8 @@ export function AnnuncioPage({ currentUser, onStartChat }: AnnuncioPageProps) {
                   </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>
