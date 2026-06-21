@@ -57,12 +57,12 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex min-w-0 items-center gap-2">
             <div className="bg-[#e74c3c] p-2 rounded-lg">
               <Building2 className="h-6 w-6 text-white" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold text-gray-900 leading-tight">CasaVista</span>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-xl font-bold leading-tight text-gray-900">CasaVista</span>
             </div>
           </Link>
 
@@ -139,10 +139,10 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <div className="px-3 py-2">
-                      <p className="font-medium text-sm">{user?.nome} {user?.cognome}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
+                  <DropdownMenuContent align="end" className="w-56 max-w-[calc(100vw-1rem)]">
+                    <div className="min-w-0 px-3 py-2">
+                      <p className="break-words text-sm font-medium">{user?.nome} {user?.cognome}</p>
+                      <p className="break-all text-xs text-gray-500">{user?.email}</p>
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild className="cursor-pointer">
@@ -240,19 +240,19 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="min-[1360px]:hidden border-t border-gray-200 py-4">
+          <div className="min-[1360px]:hidden max-w-full overflow-x-hidden border-t border-gray-200 py-4">
             <nav className="flex flex-col gap-2">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg ${
+                  className={`flex min-w-0 items-center gap-3 rounded-lg px-4 py-3 ${
                     isActive(link.to) ? 'bg-[#e74c3c]/10 text-[#e74c3c]' : 'text-gray-600'
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <link.icon className="h-5 w-5" />
-                  {link.label}
+                  <link.icon className="h-5 w-5 shrink-0" />
+                  <span className="min-w-0 break-words">{link.label}</span>
                 </Link>
               ))}
               {!isAuthenticated && (
@@ -267,9 +267,9 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
               )}
               {isAuthenticated && (
                 <div className="pt-4 border-t border-gray-200 mt-2 space-y-2">
-                  <div className="px-4 pb-2 text-sm text-gray-600">
-                    <p className="font-medium text-gray-900">{user?.nome} {user?.cognome}</p>
-                    <p className="truncate">{user?.email}</p>
+                  <div className="min-w-0 px-4 pb-2 text-sm text-gray-600">
+                    <p className="break-words font-medium text-gray-900">{user?.nome} {user?.cognome}</p>
+                    <p className="break-all">{user?.email}</p>
                   </div>
                   <Link to="/preferiti" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" className="w-full justify-start">

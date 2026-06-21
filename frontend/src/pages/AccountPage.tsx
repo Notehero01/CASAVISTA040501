@@ -41,52 +41,52 @@ export function AccountPage({ user, onDeleteProfile }: AccountPageProps) {
           <p className="text-gray-600">Gestisci profilo, annunci e dati di accesso.</p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          <Card>
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <Card className="min-w-0">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5 text-[#e74c3c]" />Dati profilo
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="rounded-lg bg-gray-50 p-4">
                   <p className="text-sm text-gray-500">Nome</p>
-                  <p className="font-semibold text-gray-900">{user.nome} {user.cognome}</p>
+                  <p className="break-words font-semibold text-gray-900">{user.nome} {user.cognome}</p>
                 </div>
                 <div className="rounded-lg bg-gray-50 p-4">
                   <p className="text-sm text-gray-500">Tipo account</p>
-                  <p className="font-semibold text-gray-900">{user.tipo === 'amministrazione' ? 'Agenzia' : user.tipo}</p>
+                  <p className="break-words font-semibold text-gray-900">{user.tipo === 'amministrazione' ? 'Professionista' : user.tipo}</p>
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex items-center gap-3 rounded-lg border p-4">
-                  <Mail className="h-5 w-5 text-[#e74c3c]" />
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="flex min-w-0 items-center gap-3 rounded-lg border p-4">
+                  <Mail className="h-5 w-5 shrink-0 text-[#e74c3c]" />
                   <div className="min-w-0">
                     <p className="text-sm text-gray-500">Email</p>
                     <p className="break-all font-medium">{user.email}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-lg border p-4">
-                  <Phone className="h-5 w-5 text-[#e74c3c]" />
-                  <div>
+                <div className="flex min-w-0 items-center gap-3 rounded-lg border p-4">
+                  <Phone className="h-5 w-5 shrink-0 text-[#e74c3c]" />
+                  <div className="min-w-0">
                     <p className="text-sm text-gray-500">Telefono</p>
-                    <p className="font-medium">{user.telefono || 'Non indicato'}</p>
+                    <p className="break-words font-medium">{user.telefono || 'Non indicato'}</p>
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link to="/miei-annunci">
+                <Link to="/miei-annunci" className="w-full sm:w-auto">
                   <Button variant="outline" className="w-full sm:w-auto">
                     <Building2 className="mr-2 h-4 w-4" />I miei annunci
                   </Button>
                 </Link>
                 {user.tipo === 'amministrazione' && (
-                  <Link to="/profilo-agenzia">
+                  <Link to="/profilo-agenzia" className="w-full sm:w-auto">
                     <Button variant="outline" className="w-full sm:w-auto">
-                      <Building2 className="mr-2 h-4 w-4" />Profilo agenzia
+                      <Building2 className="mr-2 h-4 w-4" />Profilo professionale
                     </Button>
                   </Link>
                 )}

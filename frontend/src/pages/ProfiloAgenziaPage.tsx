@@ -235,15 +235,15 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
+      <div className="container mx-auto max-w-6xl overflow-x-hidden px-4">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold">Profilo professionale</h1>
             <p className="mt-1 text-gray-600">Completa la pagina pubblica che vedranno clienti, agenzie e amministrazioni.</p>
           </div>
           {publicSlug && (
-            <Link to={`/agenzia/${publicSlug}`}>
-              <Button variant="outline">
+            <Link to={`/agenzia/${publicSlug}`} className="w-full md:w-auto">
+              <Button variant="outline" className="w-full md:w-auto">
                 <Eye className="mr-2 h-4 w-4" />Vedi pagina pubblica
               </Button>
             </Link>
@@ -284,9 +284,9 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
               <div className="space-y-3">
                 {agencyStats.statusRows.map(row => (
                   <div key={row.label}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="text-gray-600">{row.label}</span>
-                      <span className="font-medium text-gray-900">{row.value} ({row.percent}%)</span>
+                    <div className="mb-1 flex min-w-0 items-center justify-between gap-3 text-sm">
+                      <span className="min-w-0 break-words text-gray-600">{row.label}</span>
+                      <span className="shrink-0 font-medium text-gray-900">{row.value} ({row.percent}%)</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                       <div className={`h-full rounded-full ${row.className}`} style={{ width: `${row.percent}%` }} />
@@ -299,9 +299,9 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
                 <div className="space-y-3">
                   {agencyStats.typeRows.map(row => (
                     <div key={row.label}>
-                      <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="text-gray-600">{row.label}</span>
-                        <span className="font-medium text-gray-900">{row.value} ({row.percent}%)</span>
+                      <div className="mb-1 flex min-w-0 items-center justify-between gap-3 text-sm">
+                        <span className="min-w-0 break-words text-gray-600">{row.label}</span>
+                        <span className="shrink-0 font-medium text-gray-900">{row.value} ({row.percent}%)</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                         <div className={`h-full rounded-full ${row.className}`} style={{ width: `${row.percent}%` }} />
@@ -332,8 +332,8 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
 
                     return (
                       <div key={annuncio.id}>
-                        <div className="mb-2 flex items-start justify-between gap-3">
-                          <Link to={`/annuncio/${annuncio.slug || annuncio.id}`} className="line-clamp-1 text-sm font-medium text-gray-900 hover:text-[#e74c3c]">
+                        <div className="mb-2 flex min-w-0 items-start justify-between gap-3">
+                          <Link to={`/annuncio/${annuncio.slug || annuncio.id}`} className="line-clamp-1 min-w-0 text-sm font-medium text-gray-900 hover:text-[#e74c3c]">
                             {annuncio.titolo}
                           </Link>
                           <span className="shrink-0 text-sm font-semibold text-gray-700">{views.toLocaleString('it-IT')} viste</span>
@@ -350,8 +350,8 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
           </Card>
         </section>
 
-        <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[1fr_300px]">
-          <Card>
+        <form onSubmit={handleSubmit} className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <Card className="min-w-0">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-[#e74c3c]" />Dati pubblici
@@ -364,7 +364,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
                   <button
                     type="button"
                     onClick={() => setCategoriaProfilo('agenzia')}
-                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+                    className={`min-w-0 whitespace-normal break-words rounded-lg border px-3 py-2 text-sm font-medium leading-tight ${
                       formData.categoriaProfilo === 'agenzia'
                         ? 'border-[#e74c3c] bg-[#e74c3c] text-white'
                         : 'border-gray-300 bg-white text-gray-700'
@@ -375,7 +375,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
                   <button
                     type="button"
                     onClick={() => setCategoriaProfilo('amministrazione_condominiale')}
-                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+                    className={`min-w-0 whitespace-normal break-words rounded-lg border px-3 py-2 text-sm font-medium leading-tight ${
                       formData.categoriaProfilo === 'amministrazione_condominiale'
                         ? 'border-[#e74c3c] bg-[#e74c3c] text-white'
                         : 'border-gray-300 bg-white text-gray-700'
@@ -484,7 +484,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
                       key={servizio}
                       type="button"
                       onClick={() => toggleServizio(servizio)}
-                      className={`rounded-full border px-3 py-1.5 text-sm ${
+                      className={`max-w-full whitespace-normal break-words rounded-full border px-3 py-1.5 text-sm leading-tight ${
                         formData.servizi.includes(servizio)
                           ? 'border-[#e74c3c] bg-[#e74c3c] text-white'
                           : 'border-gray-300 bg-white text-gray-700'
@@ -498,7 +498,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
             </CardContent>
           </Card>
 
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Copertina</CardTitle>
