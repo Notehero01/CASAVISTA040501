@@ -51,8 +51,8 @@ interface SEOProps {
 }
 
 export function SEO({ 
-  title = 'CasaVista - Annunci Immobiliari Gratuiti', 
-  description = 'Trova la casa dei tuoi sogni su CasaVista. Migliaia di annunci immobiliari gratuiti di case e appartamenti in vendita e in affitto.',
+  title = 'CasaVista | Annunci immobiliari a Modena e provincia', 
+  description = 'CasaVista - Annunci immobiliari a Modena e provincia. Cerca case, appartamenti, agenzie e amministrazioni condominiali.',
   image = 'https://casavista.it/og-image.jpg',
   url = 'https://casavista.it',
   type = 'website',
