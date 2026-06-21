@@ -714,7 +714,7 @@ export function MapView({
         ))}
         {showPoi && !isDrawingArea && <PoiLoader enabled={showPoi} onLoad={setPoiList} onLoading={setPoiLoading} onError={setPoiError} />}
 
-        {!isDrawingArea && (
+        {!isDrawingArea && annunciConCoordinate.length > 0 && (
           <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} spiderfyOnMaxZoom iconCreateFunction={createClusterIcon}>
             {annunciConCoordinate.map((annuncio) => (
               <Marker
