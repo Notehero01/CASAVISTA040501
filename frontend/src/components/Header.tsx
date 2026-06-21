@@ -58,9 +58,7 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex min-w-0 items-center gap-2">
-            <div className="bg-[#e74c3c] p-2 rounded-lg">
-              <Building2 className="h-6 w-6 text-white" />
-            </div>
+            <img src="/favicon.svg" alt="" className="h-10 w-10 shrink-0 rounded-lg" />
             <div className="flex min-w-0 flex-col">
               <span className="truncate text-xl font-bold leading-tight text-gray-900">CasaVista</span>
             </div>

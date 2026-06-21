@@ -27,6 +27,7 @@ export function HomePage() {
       '@type': 'WebSite',
       name: 'CasaVista',
       url: 'https://casavista.it',
+      inLanguage: 'it-IT',
       potentialAction: {
         '@type': 'SearchAction',
         target: 'https://casavista.it/cerca?citta={search_term_string}',
@@ -38,7 +39,16 @@ export function HomePage() {
       '@type': 'Organization',
       name: 'CasaVista',
       url: 'https://casavista.it',
+      logo: 'https://casavista.it/favicon-512.png',
+      image: 'https://casavista.it/og-image.png',
       email: 'info@casavista.it',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        email: 'info@casavista.it',
+        contactType: 'customer support',
+        areaServed: 'IT',
+        availableLanguage: ['it']
+      },
       areaServed: {
         '@type': 'AdministrativeArea',
         name: 'Modena e provincia'

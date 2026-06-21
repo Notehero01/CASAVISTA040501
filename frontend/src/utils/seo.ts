@@ -53,7 +53,7 @@ interface SEOProps {
 export function SEO({ 
   title = 'CasaVista | Annunci immobiliari a Modena e provincia', 
   description = 'CasaVista - Annunci immobiliari a Modena e provincia. Cerca case, appartamenti, agenzie e amministrazioni condominiali.',
-  image = 'https://casavista.it/og-image.jpg',
+  image = 'https://casavista.it/og-image.png',
   url = 'https://casavista.it',
   type = 'website',
   structuredData
@@ -68,8 +68,12 @@ export function SEO({
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:image', content: image },
+      { property: 'og:image:width', content: '1200' },
+      { property: 'og:image:height', content: '630' },
       { property: 'og:url', content: url },
       { property: 'og:type', content: type },
+      { property: 'og:site_name', content: 'CasaVista' },
+      { property: 'og:locale', content: 'it_IT' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },

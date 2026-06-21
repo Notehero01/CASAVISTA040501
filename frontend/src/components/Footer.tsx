@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Building2, Mail, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
+import { Mail, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -8,9 +8,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="bg-[#e74c3c] p-2 rounded-lg">
-                <Building2 className="h-6 w-6 text-white" />
-              </div>
+              <img src="/favicon.svg" alt="" className="h-10 w-10 shrink-0 rounded-lg" />
               <span className="text-xl font-bold">CasaVista</span>
             </Link>
             <p className="text-gray-400 text-sm mb-4">
