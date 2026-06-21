@@ -198,6 +198,9 @@ app.use((err, req, res, next) => {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ message: 'File troppo grande. Max 5MB.' });
     }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ message: 'Puoi caricare massimo 30 immagini per annuncio.' });
+    }
     return res.status(400).json({ message: 'Errore upload.' });
   }
   

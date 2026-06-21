@@ -27,7 +27,9 @@ function getClient() {
 }
 
 function buildFilename(originalName = '') {
-  const ext = path.extname(originalName).toLowerCase() || '.jpg';
+  const ext = originalName.startsWith('.')
+    ? originalName
+    : path.extname(originalName).toLowerCase() || '.jpg';
   return `casavista-${Date.now()}-${generateId()}${ext}`;
 }
 
@@ -36,14 +38,14 @@ function publicUrlFor(filename) {
 }
 
 async function uploadImageBuffer(file) {
-  const filename = buildFilename(file.originalname);
+  const filename = buildFilename(file.safeExtension || file.originalname);
   const client = getClient();
 
   await client.send(new PutObjectCommand({
     Bucket: process.env.R2_BUCKET,
     Key: filename,
     Body: file.buffer,
-    ContentType: file.mimetype,
+    ContentType: file.detectedMime || file.mimetype,
     CacheControl: 'public, max-age=31536000, immutable'
   }));
 

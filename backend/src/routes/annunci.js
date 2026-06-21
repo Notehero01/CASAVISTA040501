@@ -4,6 +4,181 @@ const { readData, writeData, generateId } = require('../utils/db');
 const { auth, optionalAuth } = require('../middleware/auth');
 
 const MAX_IMAGES_PER_ANNUNCIO = 30;
+const ALLOWED_TIPI = new Set(['vendita', 'affitto']);
+const ALLOWED_CATEGORIE = new Set(['appartamento', 'casa', 'villa', 'ufficio', 'negozio', 'terreno']);
+const ALLOWED_CLASSI = new Set(['A4', 'A3', 'A2', 'A1', 'B', 'C', 'D', 'E', 'F', 'G']);
+const ALLOWED_STATI = new Set(['nuovo', 'ristrutturato', 'buono', 'da_ristrutturare']);
+const ALLOWED_RISCALDAMENTO = new Set(['autonomo', 'centralizzato', 'pompa_di_calore', 'nessuno']);
+
+function cleanText(value, maxLength) {
+  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
+
+function parseNumberField(value, { min = 0, max = Number.MAX_SAFE_INTEGER, integer = false, optional = false } = {}) {
+  if (value === undefined || value === null || value === '') return optional ? null : NaN;
+  const parsed = integer ? parseInt(value, 10) : parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed < min || parsed > max) return NaN;
+  return parsed;
+}
+
+function optionalEnum(value, allowedValues) {
+  if (value === undefined || value === null || value === '') return null;
+  return allowedValues.has(value) ? value : undefined;
+}
+
+function isValidEmail(value) {
+  if (!value) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());
+}
+
+function cleanPhone(value) {
+  return String(value || '').replace(/[^\d+]/g, '').slice(0, 20);
+}
+
+function cleanImages(images) {
+  if (!Array.isArray(images)) return [];
+
+  const allowedPrefixes = [
+    '/uploads/',
+    'https://casavista.it/uploads/',
+    'https://www.casavista.it/uploads/',
+    process.env.R2_PUBLIC_URL ? `${process.env.R2_PUBLIC_URL.replace(/\/$/, '')}/` : null
+  ].filter(Boolean);
+
+  return images
+    .map(item => String(item || '').trim())
+    .filter(item => item.length <= 500 && allowedPrefixes.some(prefix => item.startsWith(prefix)))
+    .slice(0, MAX_IMAGES_PER_ANNUNCIO);
+}
+
+function cleanCaratteristiche(caratteristiche) {
+  if (!Array.isArray(caratteristiche)) return [];
+
+  return [...new Set(
+    caratteristiche
+      .map(item => cleanText(item, 60))
+      .filter(Boolean)
+  )].slice(0, 60);
+}
+
+function cleanCoordinate(coordinate) {
+  if (!coordinate || typeof coordinate !== 'object') return null;
+
+  const lat = Number(coordinate.lat);
+  const lng = Number(coordinate.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+  return { lat, lng };
+}
+
+function validateAnnuncioPayload(body, { partial = false } = {}) {
+  const errors = [];
+  const cleaned = {};
+  const has = field => Object.prototype.hasOwnProperty.call(body, field);
+
+  if (!partial || has('titolo')) {
+    cleaned.titolo = cleanText(body.titolo, 120);
+    if (!cleaned.titolo || cleaned.titolo.length < 6) errors.push('Titolo troppo breve.');
+  }
+
+  if (!partial || has('descrizione')) {
+    cleaned.descrizione = String(body.descrizione || '').trim().slice(0, 5000);
+    if (!cleaned.descrizione || cleaned.descrizione.length < 20) errors.push('Descrizione troppo breve.');
+  }
+
+  if (!partial || has('prezzo')) {
+    cleaned.prezzo = parseNumberField(body.prezzo, { min: 1, max: 100000000 });
+    if (!Number.isFinite(cleaned.prezzo)) errors.push('Prezzo non valido.');
+  }
+
+  if (!partial || has('superficie')) {
+    cleaned.superficie = parseNumberField(body.superficie, { min: 1, max: 100000 });
+    if (!Number.isFinite(cleaned.superficie)) errors.push('Superficie non valida.');
+  }
+
+  if (!partial || has('tipo')) {
+    cleaned.tipo = body.tipo;
+    if (!ALLOWED_TIPI.has(cleaned.tipo)) errors.push('Tipo annuncio non valido.');
+  }
+
+  if (!partial || has('categoria')) {
+    cleaned.categoria = body.categoria;
+    if (!ALLOWED_CATEGORIE.has(cleaned.categoria)) errors.push('Categoria non valida.');
+  }
+
+  if (!partial || has('locali')) {
+    cleaned.locali = parseNumberField(body.locali, { min: 0, max: 100, integer: true, optional: partial });
+    if (cleaned.locali !== null && !Number.isFinite(cleaned.locali)) errors.push('Numero locali non valido.');
+  }
+
+  if (!partial || has('camere')) {
+    cleaned.camere = parseNumberField(body.camere, { min: 0, max: 100, integer: true, optional: partial });
+    if (cleaned.camere !== null && !Number.isFinite(cleaned.camere)) errors.push('Numero camere non valido.');
+  }
+
+  if (!partial || has('bagni')) {
+    cleaned.bagni = parseNumberField(body.bagni, { min: 0, max: 100, integer: true, optional: partial });
+    if (cleaned.bagni !== null && !Number.isFinite(cleaned.bagni)) errors.push('Numero bagni non valido.');
+  }
+
+  if (has('piano')) {
+    cleaned.piano = parseNumberField(body.piano, { min: -10, max: 200, integer: true, optional: true });
+    if (cleaned.piano !== null && !Number.isFinite(cleaned.piano)) errors.push('Piano non valido.');
+  }
+
+  if (has('anno_costruzione')) {
+    const maxYear = new Date().getFullYear() + 5;
+    cleaned.anno_costruzione = parseNumberField(body.anno_costruzione, { min: 1700, max: maxYear, integer: true, optional: true });
+    if (cleaned.anno_costruzione !== null && !Number.isFinite(cleaned.anno_costruzione)) errors.push('Anno costruzione non valido.');
+  }
+
+  if (!partial || has('indirizzo')) {
+    cleaned.indirizzo = cleanText(body.indirizzo, 180);
+    if (!partial && !cleaned.indirizzo) errors.push('Indirizzo obbligatorio.');
+  }
+
+  if (!partial || has('citta')) {
+    cleaned.citta = cleanText(body.citta, 80);
+    if (!cleaned.citta) errors.push('Citta obbligatoria.');
+  }
+
+  if (has('cap')) cleaned.cap = cleanText(body.cap, 10);
+  if (has('provincia')) cleaned.provincia = cleanText(body.provincia, 2).toUpperCase();
+  if (has('coordinate')) cleaned.coordinate = cleanCoordinate(body.coordinate);
+  if (has('immagini')) cleaned.immagini = cleanImages(body.immagini);
+  if (has('caratteristiche')) cleaned.caratteristiche = cleanCaratteristiche(body.caratteristiche);
+
+  if (has('classe_energetica')) {
+    cleaned.classe_energetica = optionalEnum(body.classe_energetica, ALLOWED_CLASSI);
+    if (cleaned.classe_energetica === undefined) errors.push('Classe energetica non valida.');
+  }
+
+  if (has('stato')) {
+    cleaned.stato = optionalEnum(body.stato, ALLOWED_STATI);
+    if (cleaned.stato === undefined) errors.push('Stato immobile non valido.');
+  }
+
+  if (has('riscaldamento')) {
+    cleaned.riscaldamento = optionalEnum(body.riscaldamento, ALLOWED_RISCALDAMENTO);
+    if (cleaned.riscaldamento === undefined) errors.push('Riscaldamento non valido.');
+  }
+
+  if (!partial || has('nome_contatto')) {
+    cleaned.nome_contatto = cleanText(body.nome_contatto, 120);
+  }
+
+  if (!partial || has('telefono_contatto')) {
+    cleaned.telefono_contatto = cleanPhone(body.telefono_contatto);
+  }
+
+  if (has('email_contatto')) {
+    cleaned.email_contatto = cleanText(body.email_contatto, 160).toLowerCase();
+    if (!isValidEmail(cleaned.email_contatto)) errors.push('Email contatto non valida.');
+  }
+
+  return { cleaned, errors };
+}
 
 // Funzione per generare slug
 function generateSlug(titolo, id) {
@@ -267,39 +442,10 @@ router.post('/:id/views', async (req, res) => {
 // Create annuncio (richiede auth)
 router.post('/', auth, async (req, res) => {
   try {
-    const {
-      titolo,
-      descrizione,
-      prezzo,
-      tipo,
-      categoria,
-      superficie,
-      locali,
-      camere,
-      bagni,
-      piano,
-      indirizzo,
-      citta,
-      cap,
-      provincia,
-      immagini = [],
-      caratteristiche = [],
-      classe_energetica,
-      stato,
-      riscaldamento,
-      anno_costruzione,
-      nome_contatto,
-      telefono_contatto,
-      email_contatto
-    } = req.body;
-    const immaginiPulite = Array.isArray(immagini) ? immagini.slice(0, MAX_IMAGES_PER_ANNUNCIO) : [];
-    const caratteristichePulite = Array.isArray(caratteristiche)
-      ? caratteristiche.map(item => String(item).trim()).filter(Boolean).slice(0, 60)
-      : [];
+    const { cleaned, errors } = validateAnnuncioPayload(req.body);
 
-    // Validazione
-    if (!titolo || !descrizione || !prezzo || !tipo || !categoria || !superficie) {
-      return res.status(400).json({ message: 'Campi obbligatori mancanti.' });
+    if (errors.length > 0) {
+      return res.status(400).json({ message: errors[0], errors });
     }
 
     const annunci = await readData('annunci');
@@ -307,31 +453,31 @@ router.post('/', auth, async (req, res) => {
     
     const newAnnuncio = {
       id: newId,
-      slug: generateSlug(titolo, newId),
-      titolo,
-      descrizione,
-      prezzo: parseFloat(prezzo),
-      tipo,
-      categoria,
-      superficie: parseFloat(superficie),
-      locali: parseInt(locali) || 0,
-      camere: parseInt(camere) || 0,
-      bagni: parseInt(bagni) || 0,
-      piano: piano !== undefined ? parseInt(piano) : null,
-      indirizzo: indirizzo || '',
-      citta: citta || '',
-      cap: cap || '',
-      provincia: provincia || '',
-      coordinate: req.body.coordinate || null,
-      immagini: immaginiPulite,
-      caratteristiche: caratteristichePulite,
-      classe_energetica: classe_energetica || null,
-      stato: stato || null,
-      riscaldamento: riscaldamento || null,
-      anno_costruzione: anno_costruzione ? parseInt(anno_costruzione) : null,
-      nome_contatto: nome_contatto || req.user.nome,
-      telefono_contatto: telefono_contatto || req.user.telefono,
-      email_contatto: email_contatto || req.user.email,
+      slug: generateSlug(cleaned.titolo, newId),
+      titolo: cleaned.titolo,
+      descrizione: cleaned.descrizione,
+      prezzo: cleaned.prezzo,
+      tipo: cleaned.tipo,
+      categoria: cleaned.categoria,
+      superficie: cleaned.superficie,
+      locali: cleaned.locali || 0,
+      camere: cleaned.camere || 0,
+      bagni: cleaned.bagni || 0,
+      piano: cleaned.piano ?? null,
+      indirizzo: cleaned.indirizzo || '',
+      citta: cleaned.citta,
+      cap: cleaned.cap || '',
+      provincia: cleaned.provincia || '',
+      coordinate: cleaned.coordinate || null,
+      immagini: cleaned.immagini || [],
+      caratteristiche: cleaned.caratteristiche || [],
+      classe_energetica: cleaned.classe_energetica || null,
+      stato: cleaned.stato || null,
+      riscaldamento: cleaned.riscaldamento || null,
+      anno_costruzione: cleaned.anno_costruzione ?? null,
+      nome_contatto: cleaned.nome_contatto || req.user.nome,
+      telefono_contatto: cleaned.telefono_contatto || req.user.telefono,
+      email_contatto: cleaned.email_contatto || req.user.email,
       userId: req.user.id,
       moderationStatus: req.user.tipo === 'admin' ? 'published' : 'pending',
       reviewRequestedAt: new Date().toISOString(),
@@ -394,27 +540,13 @@ router.put('/:id', auth, async (req, res) => {
       'owner'
     ].forEach(field => delete updateBody[field]);
 
-    if (Array.isArray(updateBody.immagini)) {
-      updateBody.immagini = updateBody.immagini.slice(0, MAX_IMAGES_PER_ANNUNCIO);
-    }
-    if (Array.isArray(updateBody.caratteristiche)) {
-      updateBody.caratteristiche = updateBody.caratteristiche.map(item => String(item).trim()).filter(Boolean).slice(0, 60);
+    const { cleaned, errors } = validateAnnuncioPayload(updateBody, { partial: true });
+    if (errors.length > 0) {
+      return res.status(400).json({ message: errors[0], errors });
     }
 
-    if (updateBody.prezzo !== undefined) updateBody.prezzo = parseFloat(updateBody.prezzo);
-    if (updateBody.superficie !== undefined) updateBody.superficie = parseFloat(updateBody.superficie);
-    if (updateBody.locali !== undefined) updateBody.locali = parseInt(updateBody.locali) || 0;
-    if (updateBody.camere !== undefined) updateBody.camere = parseInt(updateBody.camere) || 0;
-    if (updateBody.bagni !== undefined) updateBody.bagni = parseInt(updateBody.bagni) || 0;
-    if (updateBody.piano !== undefined) updateBody.piano = updateBody.piano === '' || updateBody.piano === null ? null : parseInt(updateBody.piano);
-    if (updateBody.anno_costruzione !== undefined) {
-      updateBody.anno_costruzione = updateBody.anno_costruzione === '' || updateBody.anno_costruzione === null ? null : parseInt(updateBody.anno_costruzione);
-    }
-    if (updateBody.classe_energetica !== undefined) updateBody.classe_energetica = updateBody.classe_energetica || null;
-    if (updateBody.stato !== undefined) updateBody.stato = updateBody.stato || null;
-    if (updateBody.riscaldamento !== undefined) updateBody.riscaldamento = updateBody.riscaldamento || null;
-    if (updateBody.titolo && updateBody.titolo !== existingAnnuncio.titolo) {
-      updateBody.slug = generateSlug(updateBody.titolo, existingAnnuncio.id);
+    if (cleaned.titolo && cleaned.titolo !== existingAnnuncio.titolo) {
+      cleaned.slug = generateSlug(cleaned.titolo, existingAnnuncio.id);
     }
 
     const userIsAdmin = req.user.tipo === 'admin';
@@ -432,7 +564,7 @@ router.put('/:id', auth, async (req, res) => {
 
     annunci[index] = {
       ...existingAnnuncio,
-      ...updateBody,
+      ...cleaned,
       ...moderationUpdate,
       updatedAt: new Date().toISOString()
     };

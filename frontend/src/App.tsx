@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { Header } from '@/components/Header';
@@ -6,31 +6,40 @@ import { Footer } from '@/components/Footer';
 import { ChatWidget } from '@/components/ChatWidget';
 import { useAuth } from '@/hooks/useAuth';
 import { useChat } from '@/hooks/useChat';
-
-// Pages
-import { HomePage } from '@/pages/HomePage';
-import { CercaPage } from '@/pages/CercaPage';
-import { AnnuncioPage } from '@/pages/AnnuncioPage';
-import { PubblicaPage } from '@/pages/PubblicaPage';
-import { ContattiPage } from '@/pages/ContattiPage';
-import { ValutazionePage } from '@/pages/ValutazionePage';
-import { MutuoPage } from '@/pages/MutuoPage';
-import { LoginPage } from '@/pages/LoginPage';
-import { RegistrazionePage } from '@/pages/RegistrazionePage';
-import { PasswordDimenticataPage } from '@/pages/PasswordDimenticataPage';
-import { ReimpostaPasswordPage } from '@/pages/ReimpostaPasswordPage';
-import { AgenziePage } from '@/pages/AgenziePage';
-import { AmministrazioniPage } from '@/pages/AmministrazioniPage';
-import { AgenziaPage } from '@/pages/AgenziaPage';
-import { ProfiloAgenziaPage } from '@/pages/ProfiloAgenziaPage';
-import { AccountPage } from '@/pages/AccountPage';
-import { MieiAnnunciPage } from '@/pages/MieiAnnunciPage';
-import { PreferitiPage } from '@/pages/PreferitiPage';
-import { ConfrontoPage } from '@/pages/ConfrontoPage';
-import { PrivacyPage, TerminiPage, CookiePage } from '@/pages/LegalPages';
-import { AdminPage } from '@/pages/AdminPage';
-import { MessaggiPage } from '@/pages/MessaggiPage';
 import type { Annuncio } from '@/types/annuncio';
+
+const HomePage = lazy(() => import('@/pages/HomePage').then(module => ({ default: module.HomePage })));
+const CercaPage = lazy(() => import('@/pages/CercaPage').then(module => ({ default: module.CercaPage })));
+const AnnuncioPage = lazy(() => import('@/pages/AnnuncioPage').then(module => ({ default: module.AnnuncioPage })));
+const PubblicaPage = lazy(() => import('@/pages/PubblicaPage').then(module => ({ default: module.PubblicaPage })));
+const ContattiPage = lazy(() => import('@/pages/ContattiPage').then(module => ({ default: module.ContattiPage })));
+const ValutazionePage = lazy(() => import('@/pages/ValutazionePage').then(module => ({ default: module.ValutazionePage })));
+const MutuoPage = lazy(() => import('@/pages/MutuoPage').then(module => ({ default: module.MutuoPage })));
+const LoginPage = lazy(() => import('@/pages/LoginPage').then(module => ({ default: module.LoginPage })));
+const RegistrazionePage = lazy(() => import('@/pages/RegistrazionePage').then(module => ({ default: module.RegistrazionePage })));
+const PasswordDimenticataPage = lazy(() => import('@/pages/PasswordDimenticataPage').then(module => ({ default: module.PasswordDimenticataPage })));
+const ReimpostaPasswordPage = lazy(() => import('@/pages/ReimpostaPasswordPage').then(module => ({ default: module.ReimpostaPasswordPage })));
+const AgenziePage = lazy(() => import('@/pages/AgenziePage').then(module => ({ default: module.AgenziePage })));
+const AmministrazioniPage = lazy(() => import('@/pages/AmministrazioniPage').then(module => ({ default: module.AmministrazioniPage })));
+const AgenziaPage = lazy(() => import('@/pages/AgenziaPage').then(module => ({ default: module.AgenziaPage })));
+const ProfiloAgenziaPage = lazy(() => import('@/pages/ProfiloAgenziaPage').then(module => ({ default: module.ProfiloAgenziaPage })));
+const AccountPage = lazy(() => import('@/pages/AccountPage').then(module => ({ default: module.AccountPage })));
+const MieiAnnunciPage = lazy(() => import('@/pages/MieiAnnunciPage').then(module => ({ default: module.MieiAnnunciPage })));
+const PreferitiPage = lazy(() => import('@/pages/PreferitiPage').then(module => ({ default: module.PreferitiPage })));
+const ConfrontoPage = lazy(() => import('@/pages/ConfrontoPage').then(module => ({ default: module.ConfrontoPage })));
+const PrivacyPage = lazy(() => import('@/pages/LegalPages').then(module => ({ default: module.PrivacyPage })));
+const TerminiPage = lazy(() => import('@/pages/LegalPages').then(module => ({ default: module.TerminiPage })));
+const CookiePage = lazy(() => import('@/pages/LegalPages').then(module => ({ default: module.CookiePage })));
+const AdminPage = lazy(() => import('@/pages/AdminPage').then(module => ({ default: module.AdminPage })));
+const MessaggiPage = lazy(() => import('@/pages/MessaggiPage').then(module => ({ default: module.MessaggiPage })));
+
+function PageFallback() {
+  return (
+    <div className="flex min-h-[45vh] items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#e74c3c] border-t-transparent" />
+    </div>
+  );
+}
 
 function App() {
   const { user, isAuthenticated, isAdmin, loading, login, register, logout, deleteProfile } = useAuth();
@@ -66,48 +75,50 @@ function App() {
           onLogout={logout}
         />
         <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/cerca" element={<CercaPage />} />
-            <Route
-              path="/annuncio/:slug"
-              element={<AnnuncioPage currentUser={user} onStartChat={handleStartChat} />}
-            />
-            <Route path="/pubblica" element={isAuthenticated ? <PubblicaPage /> : <LoginPage onLogin={login} />} />
-            <Route path="/modifica-annuncio/:id" element={isAuthenticated ? <PubblicaPage /> : <LoginPage onLogin={login} />} />
-            <Route path="/contatti" element={<ContattiPage />} />
-            <Route path="/valutazione" element={<ValutazionePage />} />
-            <Route path="/mutuo" element={<MutuoPage />} />
-            <Route path="/login" element={<LoginPage onLogin={login} />} />
-            <Route path="/password-dimenticata" element={<PasswordDimenticataPage />} />
-            <Route path="/reimposta-password/:token" element={<ReimpostaPasswordPage />} />
-            <Route path="/registrazione" element={<RegistrazionePage onRegister={register} />} />
-            <Route path="/agenzie" element={<AgenziePage />} />
-            <Route path="/amministrazioni" element={<AmministrazioniPage />} />
-            <Route path="/agenzia/:slug" element={<AgenziaPage />} />
-            <Route path="/profilo-agenzia" element={isAuthenticated ? <ProfiloAgenziaPage user={user} /> : <LoginPage onLogin={login} />} />
-            <Route path="/account" element={isAuthenticated ? <AccountPage user={user} onDeleteProfile={deleteProfile} /> : <LoginPage onLogin={login} />} />
-            <Route path="/miei-annunci" element={isAuthenticated ? <MieiAnnunciPage /> : <LoginPage onLogin={login} />} />
-            <Route path="/preferiti" element={<PreferitiPage />} />
-            <Route path="/confronto" element={<ConfrontoPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/termini" element={<TerminiPage />} />
-            <Route path="/cookie" element={<CookiePage />} />
-            <Route
-              path="/messaggi"
-              element={
-                <MessaggiPage
-                  currentUser={user}
-                  conversations={conversations}
-                  getMessages={getMessages}
-                  sendMessage={sendMessage}
-                  markAsRead={markAsRead}
-                  deleteConversation={deleteConversation}
-                />
-              }
-            />
-            <Route path="/admin" element={isAdmin ? <AdminPage /> : <LoginPage onLogin={login} />} />
-          </Routes>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/cerca" element={<CercaPage />} />
+              <Route
+                path="/annuncio/:slug"
+                element={<AnnuncioPage currentUser={user} onStartChat={handleStartChat} />}
+              />
+              <Route path="/pubblica" element={isAuthenticated ? <PubblicaPage /> : <LoginPage onLogin={login} />} />
+              <Route path="/modifica-annuncio/:id" element={isAuthenticated ? <PubblicaPage /> : <LoginPage onLogin={login} />} />
+              <Route path="/contatti" element={<ContattiPage />} />
+              <Route path="/valutazione" element={<ValutazionePage />} />
+              <Route path="/mutuo" element={<MutuoPage />} />
+              <Route path="/login" element={<LoginPage onLogin={login} />} />
+              <Route path="/password-dimenticata" element={<PasswordDimenticataPage />} />
+              <Route path="/reimposta-password/:token" element={<ReimpostaPasswordPage />} />
+              <Route path="/registrazione" element={<RegistrazionePage onRegister={register} />} />
+              <Route path="/agenzie" element={<AgenziePage />} />
+              <Route path="/amministrazioni" element={<AmministrazioniPage />} />
+              <Route path="/agenzia/:slug" element={<AgenziaPage />} />
+              <Route path="/profilo-agenzia" element={isAuthenticated ? <ProfiloAgenziaPage user={user} /> : <LoginPage onLogin={login} />} />
+              <Route path="/account" element={isAuthenticated ? <AccountPage user={user} onDeleteProfile={deleteProfile} /> : <LoginPage onLogin={login} />} />
+              <Route path="/miei-annunci" element={isAuthenticated ? <MieiAnnunciPage /> : <LoginPage onLogin={login} />} />
+              <Route path="/preferiti" element={<PreferitiPage />} />
+              <Route path="/confronto" element={<ConfrontoPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/termini" element={<TerminiPage />} />
+              <Route path="/cookie" element={<CookiePage />} />
+              <Route
+                path="/messaggi"
+                element={
+                  <MessaggiPage
+                    currentUser={user}
+                    conversations={conversations}
+                    getMessages={getMessages}
+                    sendMessage={sendMessage}
+                    markAsRead={markAsRead}
+                    deleteConversation={deleteConversation}
+                  />
+                }
+              />
+              <Route path="/admin" element={isAdmin ? <AdminPage /> : <LoginPage onLogin={login} />} />
+            </Routes>
+          </Suspense>
         </main>
         <Footer />
         <ChatWidget
