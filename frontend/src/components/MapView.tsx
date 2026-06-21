@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { Bath, Bed, Check, LocateFixed, MapPin, Maximize, Navigation, Pencil, Search, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { CircleMarker, MapContainer, Marker, Polygon, Polyline, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { WatermarkedImage } from '@/components/WatermarkedImage';
@@ -163,38 +162,6 @@ function createPoiIcon(poi: Poi) {
     iconSize: [30, 30],
     iconAnchor: [15, 15],
     popupAnchor: [0, -14],
-  });
-}
-
-function createPoiClusterIcon(cluster: { getChildCount: () => number }) {
-  const count = cluster.getChildCount();
-  const size = count > 99 ? 44 : count > 24 ? 38 : 34;
-
-  return L.divIcon({
-    className: 'casavista-poi-cluster-marker',
-    html: `
-      <div style="width:${size}px;height:${size}px;border-radius:999px;background:#ffffff;color:#334155;border:2px solid #cbd5e1;box-shadow:0 5px 16px rgba(15,23,42,.18);display:flex;align-items:center;justify-content:center;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;font-size:12px;">
-        ${count}
-      </div>
-    `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
-
-function createClusterIcon(cluster: { getChildCount: () => number }) {
-  const count = cluster.getChildCount();
-  const size = count > 99 ? 50 : count > 24 ? 44 : 38;
-
-  return L.divIcon({
-    className: 'casavista-cluster-marker',
-    html: `
-      <div style="width:${size}px;height:${size}px;border-radius:999px;background:#111827;color:white;border:3px solid white;box-shadow:0 6px 18px rgba(17,24,39,.25);display:flex;align-items:center;justify-content:center;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;font-weight:700;font-size:13px;">
-        ${count}
-      </div>
-    `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
   });
 }
 
@@ -714,37 +681,29 @@ export function MapView({
         ))}
         {showPoi && !isDrawingArea && <PoiLoader enabled={showPoi} onLoad={setPoiList} onLoading={setPoiLoading} onError={setPoiError} />}
 
-        {!isDrawingArea && annunciConCoordinate.length > 0 && (
-          <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} spiderfyOnMaxZoom iconCreateFunction={createClusterIcon}>
-            {annunciConCoordinate.map((annuncio) => (
-              <Marker
-                key={annuncio.id}
-                position={[annuncio.coordinate!.lat, annuncio.coordinate!.lng]}
-                icon={createAnnuncioIcon(annuncio.tipo)}
-                eventHandlers={{ click: () => onAnnuncioClick?.(annuncio) }}
-              >
-                <Popup closeButton={false} minWidth={260}>
-                  <PropertyPopup annuncio={annuncio} onAnnuncioClick={onAnnuncioClick} />
-                </Popup>
-              </Marker>
-            ))}
-          </MarkerClusterGroup>
-        )}
+        {!isDrawingArea && annunciConCoordinate.map((annuncio) => (
+          <Marker
+            key={annuncio.id}
+            position={[annuncio.coordinate!.lat, annuncio.coordinate!.lng]}
+            icon={createAnnuncioIcon(annuncio.tipo)}
+            eventHandlers={{ click: () => onAnnuncioClick?.(annuncio) }}
+          >
+            <Popup closeButton={false} minWidth={260}>
+              <PropertyPopup annuncio={annuncio} onAnnuncioClick={onAnnuncioClick} />
+            </Popup>
+          </Marker>
+        ))}
 
-        {showPoi && !isDrawingArea && poiList.length > 0 && (
-          <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} spiderfyOnMaxZoom maxClusterRadius={45} iconCreateFunction={createPoiClusterIcon}>
-            {poiList.map((poi) => (
-              <Marker key={`poi-${poi.id}`} position={[poi.lat, poi.lon]} icon={createPoiIcon(poi)}>
-                <Popup closeButton={false}>
-                  <div className="min-w-40 p-2">
-                    <p className="text-sm font-semibold text-gray-900">{poi.name}</p>
-                    <p className="text-xs text-gray-500">{poi.label}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MarkerClusterGroup>
-        )}
+        {showPoi && !isDrawingArea && poiList.map((poi) => (
+          <Marker key={`poi-${poi.id}`} position={[poi.lat, poi.lon]} icon={createPoiIcon(poi)}>
+            <Popup closeButton={false}>
+              <div className="min-w-40 p-2">
+                <p className="text-sm font-semibold text-gray-900">{poi.name}</p>
+                <p className="text-xs text-gray-500">{poi.label}</p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </div>
   );
