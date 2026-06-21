@@ -26,6 +26,8 @@ interface Amministrazione {
   categoriaProfilo?: string;
   email: string;
   telefono?: string;
+  telefonoFisso?: string;
+  cellulare?: string;
   citta?: string;
   rating?: number;
   recensioni?: number;
@@ -46,6 +48,10 @@ function isCondominiumAdministration(amministrazione: Amministrazione) {
   });
 }
 
+function getTelefonoFisso(amministrazione: Amministrazione) {
+  return amministrazione.telefonoFisso || amministrazione.telefono || '';
+}
+
 export function AmministrazioniPage() {
   const [amministrazioni, setAmministrazioni] = useState<Amministrazione[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,7 +68,7 @@ export function AmministrazioniPage() {
   const amministrazioniCondominiali = amministrazioni.filter(isCondominiumAdministration);
 
   const filtered = amministrazioniCondominiali.filter((a) => {
-    const haystack = `${a.nome} ${a.cognome} ${a.ragioneSociale || ''} ${a.citta || ''}`.toLowerCase();
+    const haystack = `${a.nome} ${a.cognome} ${a.ragioneSociale || ''} ${a.citta || ''} ${getTelefonoFisso(a)} ${a.cellulare || ''}`.toLowerCase();
     const matchSearch = !searchQuery || haystack.includes(searchQuery.toLowerCase());
     const matchServizi = filtroServizi.length === 0 || filtroServizi.every(s => a.servizi?.includes(s));
     return matchSearch && matchServizi;
@@ -199,7 +205,8 @@ export function AmministrazioniPage() {
                     <div className="flex flex-wrap gap-4 mt-4 text-sm text-gray-500">
                       {amm.citta && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{amm.citta}</span>}
                       <span className="flex items-center gap-1"><Building className="h-4 w-4" />{amm.annunciCount || 0} annunci</span>
-                      {amm.telefono && <span className="flex items-center gap-1"><Phone className="h-4 w-4" />{amm.telefono}</span>}
+                      {getTelefonoFisso(amm) && <span className="flex items-center gap-1"><Phone className="h-4 w-4" />Fisso: {getTelefonoFisso(amm)}</span>}
+                      {amm.cellulare && <span className="flex items-center gap-1"><Phone className="h-4 w-4" />Cell: {amm.cellulare}</span>}
                       {amm.email && <span className="flex items-center gap-1 break-all"><Mail className="h-4 w-4" />{amm.email}</span>}
                     </div>
 

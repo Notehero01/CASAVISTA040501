@@ -36,6 +36,8 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
     ragioneSociale: '',
     email: '',
     telefono: '',
+    telefonoFisso: '',
+    cellulare: '',
     password: '',
     confermaPassword: '',
     privacyConsent: false
@@ -63,6 +65,9 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
           nome: formData.ragioneSociale,
           cognome: tipo === 'agenzia' ? 'Agenzia' : 'Amministrazione',
           ragioneSociale: formData.ragioneSociale,
+          telefono: formData.telefonoFisso || formData.cellulare,
+          telefonoFisso: formData.telefonoFisso,
+          cellulare: formData.cellulare,
           tipo: 'amministrazione',
           categoriaProfilo: tipo,
           servizi: tipo === 'amministrazione_condominiale' ? ['Amministrazione condominiale'] : []
@@ -142,13 +147,32 @@ export function RegistrazionePage({ onRegister }: RegistrazionePageProps) {
                   <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="pl-10" required />
                 </div>
               </div>
-              <div>
-                <Label>Telefono</Label>
-                <div className="relative mt-2">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input type="tel" value={formData.telefono} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} className="pl-10" />
+              {tipo !== 'utente' ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>Telefono fisso</Label>
+                    <div className="relative mt-2">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <Input type="tel" value={formData.telefonoFisso} onChange={(e) => setFormData({ ...formData, telefonoFisso: e.target.value })} className="pl-10" placeholder="059..." />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Cellulare</Label>
+                    <div className="relative mt-2">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <Input type="tel" value={formData.cellulare} onChange={(e) => setFormData({ ...formData, cellulare: e.target.value })} className="pl-10" placeholder="+39 3..." />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <Label>Telefono</Label>
+                  <div className="relative mt-2">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Input type="tel" value={formData.telefono} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} className="pl-10" />
+                  </div>
+                </div>
+              )}
               <div>
                 <Label>Password *</Label>
                 <div className="relative mt-2">

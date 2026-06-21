@@ -30,7 +30,7 @@ function createPasswordResetToken() {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, nome, cognome, telefono, tipo = 'utente', privacyConsent, ragioneSociale, categoriaProfilo, servizi } = req.body;
+    const { email, password, nome, cognome, telefono, telefonoFisso, cellulare, tipo = 'utente', privacyConsent, ragioneSociale, categoriaProfilo, servizi } = req.body;
     const accountType = ['utente', 'amministrazione'].includes(tipo) ? tipo : 'utente';
     const profileCategory = categoriaProfilo === 'amministrazione_condominiale' ? 'amministrazione_condominiale' : 'agenzia';
     const agencyName = String(ragioneSociale || nome || '').trim();
@@ -66,7 +66,7 @@ router.post('/register', async (req, res) => {
       password: hashPassword(password),
       nome: firstName,
       cognome: lastName,
-      telefono: telefono || null,
+      telefono: telefonoFisso || telefono || cellulare || null,
       tipo: accountType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -96,7 +96,9 @@ router.post('/register', async (req, res) => {
           provincia: '',
           indirizzo: '',
           sitoWeb: '',
-          telefono: telefono || '',
+          telefono: telefonoFisso || telefono || cellulare || '',
+          telefonoFisso: telefonoFisso || telefono || '',
+          cellulare: cellulare || '',
           whatsapp: '',
           logo: '',
           coverImage: '',

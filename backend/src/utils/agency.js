@@ -41,6 +41,8 @@ function buildAgencyProfile(user, details = {}, annunci = [], options = {}) {
 
   const coverFromListing = publicAnnunci.find(a => Array.isArray(a.immagini) && a.immagini.length > 0)?.immagini?.[0];
   const displayName = getAgencyName(user, details);
+  const telefonoFisso = details.telefonoFisso || details.telefono || user.telefono || '';
+  const cellulare = details.cellulare || '';
 
   const profile = {
     id: user.id,
@@ -52,7 +54,9 @@ function buildAgencyProfile(user, details = {}, annunci = [], options = {}) {
     ragioneSociale: details.ragioneSociale || displayName,
     descrizione: details.descrizione || '',
     email: details.email || user.email,
-    telefono: details.telefono || user.telefono || '',
+    telefono: telefonoFisso || cellulare,
+    telefonoFisso,
+    cellulare,
     whatsapp: details.whatsapp || '',
     citta: details.citta || '',
     provincia: details.provincia || '',

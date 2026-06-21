@@ -17,6 +17,8 @@ interface Agenzia {
   categoriaProfilo?: string;
   email: string;
   telefono?: string;
+  telefonoFisso?: string;
+  cellulare?: string;
   citta?: string;
   servizi?: string[];
   verified?: boolean;
@@ -36,6 +38,10 @@ function isCondominiumAdministration(agenzia: Agenzia) {
   });
 }
 
+function getTelefonoFisso(agenzia: Agenzia) {
+  return agenzia.telefonoFisso || agenzia.telefono || '';
+}
+
 export function AgenziePage() {
   const [agenzie, setAgenzie] = useState<Agenzia[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,7 +57,7 @@ export function AgenziePage() {
   const agenzieImmobiliari = agenzie.filter(agenzia => !isCondominiumAdministration(agenzia));
 
   const filtered = agenzieImmobiliari.filter((agenzia) => {
-    const haystack = `${agenzia.nome} ${agenzia.cognome} ${agenzia.ragioneSociale || ''} ${agenzia.citta || ''}`.toLowerCase();
+    const haystack = `${agenzia.nome} ${agenzia.cognome} ${agenzia.ragioneSociale || ''} ${agenzia.citta || ''} ${getTelefonoFisso(agenzia)} ${agenzia.cellulare || ''}`.toLowerCase();
     return !searchQuery || haystack.includes(searchQuery.toLowerCase());
   });
   const agenzieStructuredData = {
@@ -169,7 +175,8 @@ export function AgenziePage() {
 
                     <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-500">
                       {agenzia.citta && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{agenzia.citta}</span>}
-                      {agenzia.telefono && <span className="flex items-center gap-1"><Phone className="h-4 w-4" />{agenzia.telefono}</span>}
+                      {getTelefonoFisso(agenzia) && <span className="flex items-center gap-1"><Phone className="h-4 w-4" />Fisso: {getTelefonoFisso(agenzia)}</span>}
+                      {agenzia.cellulare && <span className="flex items-center gap-1"><Phone className="h-4 w-4" />Cell: {agenzia.cellulare}</span>}
                       {agenzia.email && <span className="flex items-center gap-1 break-all"><Mail className="h-4 w-4" />{agenzia.email}</span>}
                     </div>
 

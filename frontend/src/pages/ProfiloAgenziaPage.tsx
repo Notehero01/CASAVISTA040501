@@ -41,6 +41,7 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
     indirizzo: '',
     sitoWeb: '',
     telefono: '',
+    cellulare: '',
     whatsapp: '',
     logo: '',
     coverImage: '',
@@ -67,7 +68,8 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
           provincia: profile.provincia || '',
           indirizzo: profile.indirizzo || '',
           sitoWeb: profile.sitoWeb || '',
-          telefono: profile.telefono || user.telefono || '',
+          telefono: profile.telefonoFisso || profile.telefono || user.telefono || '',
+          cellulare: profile.cellulare || '',
           whatsapp: profile.whatsapp || '',
           logo: profile.logo || '',
           coverImage: profile.coverImage || '',
@@ -80,7 +82,8 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
         setFormData(prev => ({
           ...prev,
           ragioneSociale: `${user.nome} ${user.cognome}`,
-          telefono: user.telefono || ''
+          telefono: user.telefono || '',
+          cellulare: ''
         }));
       }
 
@@ -193,7 +196,10 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
     setSaving(true);
 
     try {
-      await amministrazioniApi.updateProfile(formData);
+      await amministrazioniApi.updateProfile({
+        ...formData,
+        telefonoFisso: formData.telefono
+      });
       if (user) {
         const profile = await amministrazioniApi.getById(user.id);
         setPublicSlug(profile.slug || user.id);
@@ -439,16 +445,32 @@ export function ProfiloAgenziaPage({ user }: ProfiloAgenziaPageProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label>Telefono</Label>
+                  <Label>Telefono fisso</Label>
                   <div className="relative mt-2">
                     <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                     <Input
                       value={formData.telefono}
                       onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
                       className="pl-10"
+                      placeholder="059..."
                     />
                   </div>
                 </div>
+                <div>
+                  <Label>Cellulare</Label>
+                  <div className="relative mt-2">
+                    <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                    <Input
+                      value={formData.cellulare}
+                      onChange={(e) => setFormData({ ...formData, cellulare: e.target.value })}
+                      className="pl-10"
+                      placeholder="+39 3..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <Label>WhatsApp</Label>
                   <div className="relative mt-2">

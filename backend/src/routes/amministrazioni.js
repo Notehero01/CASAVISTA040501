@@ -85,6 +85,8 @@ router.post('/profile', auth, async (req, res) => {
       indirizzo,
       sitoWeb,
       telefono,
+      telefonoFisso,
+      cellulare,
       whatsapp,
       logo,
       coverImage,
@@ -99,9 +101,16 @@ router.post('/profile', auth, async (req, res) => {
     const index = amministrazioni.findIndex(a => a.userId === req.user.id);
     const userIndex = users.findIndex(u => u.id === req.user.id);
     const existingProfile = index === -1 ? {} : amministrazioni[index];
+    const updatedTelefonoFisso = telefonoFisso !== undefined
+      ? telefonoFisso
+      : (telefono !== undefined ? telefono : (existingProfile.telefonoFisso || existingProfile.telefono || req.user.telefono || ''));
+    const updatedCellulare = cellulare !== undefined
+      ? cellulare
+      : (existingProfile.cellulare || '');
+    const primaryPhone = updatedTelefonoFisso || updatedCellulare || '';
 
-    if (userIndex !== -1 && telefono !== undefined) {
-      users[userIndex].telefono = telefono || null;
+    if (userIndex !== -1 && (telefono !== undefined || telefonoFisso !== undefined || cellulare !== undefined)) {
+      users[userIndex].telefono = primaryPhone || null;
       users[userIndex].updatedAt = new Date().toISOString();
       await writeData('users', users);
     }
@@ -114,7 +123,9 @@ router.post('/profile', auth, async (req, res) => {
       provincia: provincia !== undefined ? provincia : (existingProfile.provincia || ''),
       indirizzo: indirizzo !== undefined ? indirizzo : (existingProfile.indirizzo || ''),
       sitoWeb: sitoWeb !== undefined ? sitoWeb : (existingProfile.sitoWeb || ''),
-      telefono: telefono !== undefined ? telefono : (existingProfile.telefono || req.user.telefono || ''),
+      telefono: primaryPhone,
+      telefonoFisso: updatedTelefonoFisso || '',
+      cellulare: updatedCellulare || '',
       whatsapp: whatsapp !== undefined ? whatsapp : (existingProfile.whatsapp || ''),
       logo: logo !== undefined ? logo : (existingProfile.logo || ''),
       coverImage: coverImage !== undefined ? coverImage : (existingProfile.coverImage || ''),

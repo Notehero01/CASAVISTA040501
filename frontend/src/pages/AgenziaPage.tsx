@@ -30,6 +30,8 @@ interface AgenziaProfile {
   descrizione?: string;
   email?: string;
   telefono?: string;
+  telefonoFisso?: string;
+  cellulare?: string;
   whatsapp?: string;
   citta?: string;
   provincia?: string;
@@ -53,6 +55,16 @@ function normalizeWebsite(url?: string) {
 
 function normalizePhone(value?: string) {
   return String(value || '').replace(/[^\d+]/g, '');
+}
+
+function getTelefonoFisso(agenzia: AgenziaProfile) {
+  return agenzia.telefonoFisso || agenzia.telefono || '';
+}
+
+function isSamePhone(a?: string, b?: string) {
+  const first = normalizePhone(a);
+  const second = normalizePhone(b);
+  return Boolean(first && second && first === second);
 }
 
 function getInitials(name: string) {
@@ -85,6 +97,8 @@ export function AgenziaPage() {
     ? `https://wa.me/${normalizePhone(agenzia.whatsapp)}`
     : '';
   const websiteUrl = normalizeWebsite(agenzia?.sitoWeb);
+  const telefonoFisso = agenzia ? getTelefonoFisso(agenzia) : '';
+  const cellulare = agenzia?.cellulare || '';
 
   if (loading) {
     return (
@@ -123,7 +137,7 @@ export function AgenziaPage() {
     image: agenzia.coverImage || agenzia.logo || undefined,
     logo: agenzia.logo || undefined,
     email: agenzia.email,
-    telephone: agenzia.telefono || agenzia.whatsapp || undefined,
+    telephone: telefonoFisso || cellulare || agenzia.whatsapp || undefined,
     address: {
       '@type': 'PostalAddress',
       streetAddress: agenzia.indirizzo || undefined,
@@ -302,10 +316,20 @@ export function AgenziaPage() {
           <div className="rounded-lg border bg-white p-5 md:sticky md:top-24">
             <h2 className="text-lg font-semibold">Contatta agenzia</h2>
             <div className="mt-4 space-y-3 text-sm">
-              {agenzia.telefono && (
-                <a href={`tel:${normalizePhone(agenzia.telefono)}`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
+              {telefonoFisso && (
+                <a href={`tel:${normalizePhone(telefonoFisso)}`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
                   <Phone className="h-4 w-4 text-[#e74c3c]" />
-                  <span className="break-all">{agenzia.telefono}</span>
+                  <span className="min-w-0 break-all">
+                    <span className="font-medium">Fisso:</span> {telefonoFisso}
+                  </span>
+                </a>
+              )}
+              {cellulare && !isSamePhone(cellulare, telefonoFisso) && (
+                <a href={`tel:${normalizePhone(cellulare)}`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-gray-50">
+                  <Phone className="h-4 w-4 text-[#e74c3c]" />
+                  <span className="min-w-0 break-all">
+                    <span className="font-medium">Cellulare:</span> {cellulare}
+                  </span>
                 </a>
               )}
               {agenzia.email && (
