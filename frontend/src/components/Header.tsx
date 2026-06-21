@@ -57,10 +57,10 @@ export function Header({ user, isAuthenticated, isAdmin, unreadMessages, onLogou
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex min-w-0 items-center gap-2">
+          <Link to="/" className="flex shrink-0 items-center gap-2">
             <img src="/favicon.svg" alt="" className="h-10 w-10 shrink-0 rounded-lg" />
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate text-xl font-bold leading-tight text-gray-900">CasaVista</span>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold leading-tight text-gray-900 sm:text-xl">CasaVista</span>
             </div>
           </Link>
 
